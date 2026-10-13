@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildBookingUrl, buildBookingText } from "../worker/src/booking.js";
+import { buildBookingUrl, buildBookingText, buildMeasureText, buildMeasureUrl } from "../worker/src/booking.js";
 
 test("ссылка ведёт в личку продавца с текстом: просьба и ссылка на пост", () => {
   const url = new URL(buildBookingUrl({ title: "Худи Burberry Brit", size: "L", priceRub: 9650, postId: 165 }));
@@ -15,4 +15,11 @@ test("в тексте брони нет названия, размера и це
 
 test("без номера поста текст остаётся просьбой без ссылки", () => {
   assert.equal(buildBookingText({ postId: null }), "Хочу забронировать:");
+});
+
+test("«Замеры»: готовый текст со ссылкой на пост, в личку продавца", () => {
+  const url = new URL(buildMeasureUrl({ postId: 170 }));
+  assert.equal(url.origin + url.pathname, "https://t.me/Alexy153");
+  assert.equal(url.searchParams.get("text"), "Привет,нужны замеры https://t.me/Yorisell/170");
+  assert.equal(buildMeasureText({ postId: null }), "Привет,нужны замеры");
 });

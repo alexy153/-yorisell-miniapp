@@ -38,6 +38,8 @@ button { cursor: pointer; }
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
 :focus-visible { outline: 2px solid var(--accent-a); outline-offset: 3px; }
+/* Касание только для прокрутки и нажатий: щипок и двойное касание не увеличивают экран. */
+* { touch-action: pan-x pan-y; }
 
 /* Оболочка: на телефоне — весь экран, на компьютере — колонка по ширине телефона. */
 .app {

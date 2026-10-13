@@ -1,7 +1,7 @@
 // Чтение каталога для покупателя. Скрытые владельцем товары не выдаются.
 // Проданные в каталоге не показываются, а в избранном остаются с пометкой «Нет в наличии».
 import { all, first } from "./db.js";
-import { buildBookingUrl } from "./booking.js";
+import { buildBookingUrl, buildMeasureUrl } from "./booking.js";
 
 export const CATEGORY_ORDER = ["Худи", "Свитеры", "Футболки", "Обувь", "Другое"];
 
@@ -79,7 +79,8 @@ export async function getItemDetail(db, id) {
     measurements: item.measurements,
     publishedAt: item.published_at,
     postUrl: item.post_url,
-    bookingUrl: buildBookingUrl({ title: item.title, size: item.size, priceRub: item.price_rub, postId: item.id }),
+    bookingUrl: buildBookingUrl({ postId: item.id }),
+    measureUrl: buildMeasureUrl({ postId: item.id }),
     sold,
     coverUrl: cover ? `/img/${cover.id}` : null,
     photos: photos.map((photo) => `/img/${photo.id}`),

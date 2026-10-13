@@ -85,6 +85,8 @@ test("карточка товара: описание, фото, ссылка н
   assert.equal(item.sold, false);
   assert.ok(item.bookingUrl.startsWith("https://t.me/Alexy153?text="));
   assert.ok(decodeURIComponent(item.bookingUrl).includes("https://t.me/Yorisell/170"));
+  assert.ok(item.measureUrl.startsWith("https://t.me/Alexy153?text="));
+  assert.ok(decodeURIComponent(item.measureUrl).includes("Привет,нужны замеры https://t.me/Yorisell/170"));
 });
 
 test("карточка проданного товара помечена sold: true", async () => {

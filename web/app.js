@@ -8,8 +8,6 @@ const REDUCED = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches 
 const TABS = ["favorites", "catalog", "info"];
 const FAV_KEY = "favorites";
 const SELLER = "https://t.me/Alexy153";
-// Кнопка «Замеры» открывает чат с продавцом с готовым текстом.
-const MEASURE_URL = `${SELLER}?text=${encodeURIComponent("Пришлите пожалуйста замеры")}`;
 const REVIEWS = "https://www.avito.ru/brands/f9610b6b4e6fd344c27c2197bf03b0be?src=sharing";
 
 const ICON = {
@@ -320,7 +318,7 @@ function productHtml(item) {
     </section>
     <div class="buybar">
       <button class="heart${on ? " is-on" : ""}" type="button" data-fav="${item.id}" aria-pressed="${on}" aria-label="В избранное">${ICON.heart}</button>
-      <a class="btn btn-ghost buy-measure" href="${MEASURE_URL}" data-tg-link>Замеры</a>
+      <a class="btn btn-ghost buy-measure" href="${esc(item.measureUrl)}" data-tg-link>Замеры</a>
       ${booking}
     </div>`;
 }

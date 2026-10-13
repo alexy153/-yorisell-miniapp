@@ -299,10 +299,9 @@ function productHtml(item) {
        </div>`
     : `<div class="gallery"></div>`;
 
-  const measurements = item.measurements ? esc(item.measurements) : "Замеры в ЛС";
   const booking = item.sold
-    ? `<span class="btn btn-ghost" aria-disabled="true">Нет в наличии</span>`
-    : `<a class="btn" href="${esc(item.bookingUrl)}" data-book="${item.id}" data-tg-link>Забронировать</a>`;
+    ? `<span class="btn btn-ghost buy-main" aria-disabled="true">Нет в наличии</span>`
+    : `<a class="btn buy-main" href="${esc(item.bookingUrl)}" data-book="${item.id}" data-tg-link>Забронировать</a>`;
 
   return `
     <h1 class="p-title" id="sheet-title">${esc(item.title)}</h1>
@@ -317,10 +316,10 @@ function productHtml(item) {
       <h2>Описание</h2>
       <p>${esc(item.description ?? "Подробности уточните в личке.")}</p>
     </section>
-    <a class="spec glass" href="${SELLER}" data-tg-link><span>${measurements}</span><span aria-hidden="true">${ICON.chevron}</span></a>
     <div class="buybar">
       <button class="heart${on ? " is-on" : ""}" type="button" data-fav="${item.id}" aria-pressed="${on}" aria-label="В избранное">${ICON.heart}</button>
       ${booking}
+      <a class="btn btn-ghost buy-measure" href="${SELLER}" data-tg-link>Замеры</a>
     </div>`;
 }
 

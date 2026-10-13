@@ -404,8 +404,6 @@ img { display: block; max-width: 100%; }
 .desc { margin-top: 14px; padding: 14px 18px; border-radius: 22px; }
 .desc h2 { margin: 0; font-size: 12px; font-weight: 600; color: var(--text-2); }
 .desc p { margin: 6px 0 0; font-size: 15px; line-height: 1.5; }
-.spec { margin-top: 12px; padding: 0 18px; height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: 600; }
-
 .buybar {
   position: fixed;
   left: 50%;
@@ -427,6 +425,9 @@ img { display: block; max-width: 100%; }
 }
 .buybar .heart { position: static; flex: 0 0 40px; width: 40px; height: 40px; }
 .buybar .btn { flex: 1; height: 56px; }
+/* «Забронировать» — 75% нижней панели без сердечка, «Замеры» — 25%. */
+.buybar .buy-main { flex: 3; min-width: 0; }
+.buybar .buy-measure { flex: 1; min-width: 0; font-size: 14px; }
 
 .zoom {
   position: fixed;

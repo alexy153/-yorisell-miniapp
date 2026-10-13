@@ -204,10 +204,9 @@ function gridHtml(animate) {
   return items.map((item, index) => cardHtml(item, index, animate)).join("");
 }
 
+// Без подписей поверх фото: если картинки нет, остаётся ровный серый фон плитки.
 function photoHtml(url) {
-  return url
-    ? `<img src="${esc(url)}" alt="" loading="lazy" data-fallback><span class="photo-label">Фото</span>`
-    : `<span class="photo-label">Фото</span>`;
+  return url ? `<img src="${esc(url)}" alt="" loading="lazy" data-fallback>` : "";
 }
 
 function cardHtml(item, index, animate) {
@@ -298,7 +297,7 @@ function productHtml(item) {
          </div>
          <div class="dots" id="dots">${item.photos.map((_, i) => `<span class="dot${i === 0 ? " is-active" : ""}"></span>`).join("")}</div>
        </div>`
-    : `<div class="gallery"><span class="photo-label">Фото</span></div>`;
+    : `<div class="gallery"></div>`;
 
   const measurements = item.measurements ? esc(item.measurements) : "Замеры в ЛС";
   const booking = item.sold
@@ -485,17 +484,12 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-// Картинки, которых ещё нет на сервере, заменяем подписью «Фото».
+// Картинка не загрузилась: прячем её, под ней остаётся ровный серый фон без подписей.
 document.addEventListener(
   "error",
   (event) => {
     const img = event.target;
-    if (!(img instanceof HTMLImageElement) || !img.dataset.fallback) return;
-    img.hidden = true;
-    const parent = img.parentElement;
-    if (parent && !parent.querySelector(".photo-label")) {
-      parent.insertAdjacentHTML("afterbegin", '<span class="photo-label">Фото</span>');
-    }
+    if (img instanceof HTMLImageElement && img.hasAttribute("data-fallback")) img.hidden = true;
   },
   true,
 );

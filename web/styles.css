@@ -328,7 +328,8 @@ img { display: block; max-width: 100%; }
   transition: transform 0.34s var(--ease-soft);
   -webkit-overflow-scrolling: touch;
 }
-.sheet.is-open { transform: translateY(0); }
+/* Без transform у открытой карточки нижняя панель и кнопка «назад» закреплены к экрану, а не к карточке: при прокрутке не уезжают. */
+.sheet.is-open { transform: none; }
 .sheet.is-closing { transform: translateY(100%); transition-duration: 0.26s; transition-timing-function: var(--ease-out); }
 .sheet[hidden] { display: none; }
 .sheet-body {

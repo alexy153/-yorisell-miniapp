@@ -7,10 +7,10 @@ import { createTestEnv, fixtureFetchers, fixtureText, adminHeaders, initDataFor 
 
 const NOW = new Date("2026-10-13T10:00:00Z");
 
-async function setup({ photoBudget = 100 } = {}) {
+async function setup() {
   const env = createTestEnv();
   const fetchers = fixtureFetchers();
-  await syncChannel(env.DB, { ...fetchers, now: NOW, photoBudget });
+  await syncChannel(env.DB, { ...fetchers, now: NOW, budget: Number.POSITIVE_INFINITY });
   return { env, fetchers, options: { fetchText: fetchers.fetchText, fetchBytes: fetchers.fetchBytes } };
 }
 
@@ -20,6 +20,10 @@ function request(path, init = {}) {
 
 function post(body, headers = {}) {
   return { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) };
+}
+
+function putJson(body, headers = {}) {
+  return { method: "PUT", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) };
 }
 
 test("публичный каталог: 6 товаров без проданных и скрытых", async () => {
@@ -76,19 +80,45 @@ test("события: показ и открытие принимаются, н�
   assert.equal(huge.status, 413);
 });
 
-test("картинки: до скачивания — 404, после — байты с типом файла", async () => {
-  const { env, options } = await setup({ photoBudget: 0 });
+test("картинки: первый показ скачивает копию из CDN, следующие отдаются из базы", async () => {
+  const { env, fetchers, options } = await setup();
   const detail = await (await handleRequest(request("/api/items/170"), env, options)).json();
-  const photoPath = detail.coverUrl;
 
-  assert.equal((await handleRequest(request(photoPath), env, options)).status, 404);
+  const firstShow = await handleRequest(request(detail.coverUrl), env, options);
+  assert.equal(firstShow.status, 200);
+  assert.equal(firstShow.headers.get("content-type"), "image/png");
+  assert.match(firstShow.headers.get("cache-control"), /max-age/);
+  assert.equal(fetchers.photoRequests.length, 1);
 
-  const cached = await setup({ photoBudget: 100 });
-  const again = await (await handleRequest(request("/api/items/170"), cached.env, cached.options)).json();
-  const image = await handleRequest(request(again.coverUrl), cached.env, cached.options);
-  assert.equal(image.status, 200);
-  assert.equal(image.headers.get("content-type"), "image/png");
-  assert.match(image.headers.get("cache-control"), /max-age/);
+  const again = await handleRequest(request(detail.coverUrl), env, options);
+  assert.equal(again.status, 200);
+  assert.equal(fetchers.photoRequests.length, 1, "повторный показ не ходит в CDN");
+});
+
+test("картинки: если CDN не отдал фото, покупатель получает 404, а не ошибку сервера", async () => {
+  const { env, options } = await setup();
+  const detail = await (await handleRequest(request("/api/items/170"), env, options)).json();
+  const broken = {
+    ...options,
+    fetchBytes: async () => {
+      throw new Error("CDN недоступен");
+    },
+  };
+  const response = await handleRequest(request(detail.coverUrl), env, broken);
+  assert.equal(response.status, 404);
+});
+
+test("картинки: адрес не из канала не скачивается", async () => {
+  const { env, fetchers, options } = await setup();
+  const detail = await (await handleRequest(request("/api/items/170"), env, options)).json();
+  const photoId = Number(detail.coverUrl.split("/").pop());
+  await env.DB.prepare("UPDATE photos SET source_url = ? WHERE id = ?")
+    .bind("https://evil.example/x.png", photoId)
+    .run();
+
+  const response = await handleRequest(request(detail.coverUrl), env, options);
+  assert.equal(response.status, 404);
+  assert.equal(fetchers.photoRequests.length, 0);
 });
 
 test("админ-список: без подписи 401, с подписью другого пользователя 403, с подписью админа 200", async () => {
@@ -103,6 +133,9 @@ test("админ-список: без подписи 401, с подписью д
   const body = await ok.json();
   assert.equal(body.items.length, 8);
   assert.ok(body.lastSync);
+  // Номера фото нужны, чтобы выбрать обложку, в том числе у скрытых товаров.
+  const item = body.items.find((row) => row.id === 170);
+  assert.equal(item.photoIds.length, item.photoCount);
 });
 
 test("админ: правка без подписи и с подменённой подписью не меняет товар", async () => {
@@ -147,6 +180,52 @@ test("админ: правка с подписью владельца скрыв
   assert.equal(notJson.status, 400);
 });
 
+test("админ: тело правки не из объекта (null) — 400, а не ошибка сервера", async () => {
+  const { env, options } = await setup();
+  const response = await handleRequest(
+    request("/api/admin/items/170", { method: "PATCH", body: "null", headers: adminHeaders() }),
+    env,
+    options,
+  );
+  assert.equal(response.status, 400);
+});
+
+test("админ: порядок товаров сохраняется, покупатель видит тот же порядок", async () => {
+  const { env, options } = await setup();
+  const list = await (await handleRequest(request("/api/admin/items", { headers: adminHeaders() }), env, options)).json();
+  const reversed = list.items.map((item) => item.id).reverse();
+
+  const put = await handleRequest(request("/api/admin/order", putJson({ ids: reversed }, adminHeaders())), env, options);
+  assert.equal(put.status, 200);
+
+  const catalog = await (await handleRequest(request("/api/catalog"), env, options)).json();
+  const expected = reversed.filter((id) => catalog.items.some((card) => card.id === id));
+  assert.deepEqual(
+    catalog.items.map((card) => card.id),
+    expected,
+  );
+});
+
+test("админ: порядок с пропущенным, повторным или чужим номером отклоняется", async () => {
+  const { env, options } = await setup();
+  const list = await (await handleRequest(request("/api/admin/items", { headers: adminHeaders() }), env, options)).json();
+  const ids = list.items.map((item) => item.id);
+  const send = (body) => handleRequest(request("/api/admin/order", putJson(body, adminHeaders())), env, options);
+
+  assert.equal((await send({ ids: ids.slice(1) })).status, 409, "не хватает товара");
+  assert.equal((await send({ ids: [...ids, 999] })).status, 409, "лишний номер");
+  assert.equal((await send({ ids: [ids[0], ids[0], ...ids.slice(2)] })).status, 400, "повтор номера");
+  assert.equal((await send({ ids: ["170"] })).status, 400, "номер строкой");
+  assert.equal((await send({})).status, 400, "нет списка");
+  assert.equal((await send(null)).status, 400, "тело не объект");
+});
+
+test("админ: порядок без подписи не меняется", async () => {
+  const { env, options } = await setup();
+  const response = await handleRequest(request("/api/admin/order", putJson({ ids: [170] })), env, options);
+  assert.equal(response.status, 401);
+});
+
 test("админ: ручной запуск синхронизации и обновление одного товара", async () => {
   const { env, fetchers, options } = await setup();
   const sync = await handleRequest(request("/api/admin/sync", { method: "POST", headers: adminHeaders() }), env, options);
@@ -172,13 +251,17 @@ test("админ: ручной запуск синхронизации и обн
   assert.equal(missing.status, 404);
 });
 
-test("админ: статистика за период", async () => {
+test("админ: статистика за период и за всё время", async () => {
   const { env, options } = await setup();
   await handleRequest(request("/api/events", post({ kind: "open", itemId: 170 })), env, options);
-  const response = await handleRequest(request("/api/admin/stats?days=7", { headers: adminHeaders() }), env, options);
-  assert.equal(response.status, 200);
-  const stats = await response.json();
-  assert.equal(stats.totals.opens, 1);
+
+  const week = await handleRequest(request("/api/admin/stats?days=7", { headers: adminHeaders() }), env, options);
+  assert.equal(week.status, 200);
+  assert.equal((await week.json()).totals.opens, 1);
+
+  const all = await (await handleRequest(request("/api/admin/stats?days=0", { headers: adminHeaders() }), env, options)).json();
+  assert.equal(all.since, "0000-00-00");
+  assert.equal(all.totals.opens, 1);
 });
 
 test("неизвестный путь: 404, а не утечка данных", async () => {

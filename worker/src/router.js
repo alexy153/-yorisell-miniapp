@@ -1,8 +1,9 @@
 // Маршруты сервера. Админ-маршруты проверяются гардом раньше любой логики.
 import { requireAdmin } from "./auth.js";
-import { getCatalog, getItemsByIds, getItemDetail, getPhoto } from "./catalog.js";
+import { getCatalog, getItemsByIds, getItemDetail } from "./catalog.js";
 import { EVENT_KINDS, getStats, recordEvent } from "./events.js";
-import { adminOverview, patchItem, refreshOne, runSync } from "./admin.js";
+import { adminOverview, patchItem, refreshOne, reorderItems, runSync } from "./admin.js";
+import { loadPhoto } from "./photos.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 
@@ -66,7 +67,7 @@ async function route(request, env, options) {
   if (path.startsWith("/api/")) return publicRoute(request, env, url, method);
 
   const photo = /^\/img\/(\d+)$/.exec(path);
-  if (photo && method === "GET") return imageResponse(env, Number(photo[1]));
+  if (photo && method === "GET") return imageResponse(env, Number(photo[1]), options);
 
   if (env.ASSETS) return env.ASSETS.fetch(request); // статика приложения (web/)
   return notFound();
@@ -101,12 +102,20 @@ async function publicRoute(request, env, url, method) {
   return notFound();
 }
 
-async function imageResponse(env, id) {
-  const photo = await getPhoto(env.DB, id);
+// Фото отдаём из базы; при первом показе копия скачивается из CDN канала.
+async function imageResponse(env, id, options) {
+  let photo;
+  try {
+    photo = await loadPhoto(env.DB, id, options.fetchBytes);
+  } catch (error) {
+    // CDN недоступен или база не ответила: покупателю — 404, подробности — в журнал.
+    console.error(error);
+    return notFound();
+  }
   if (!photo) return notFound();
   return new Response(photo.body, {
     headers: {
-      "content-type": photo.content_type || "image/jpeg",
+      "content-type": photo.content_type,
       "cache-control": "public, max-age=86400",
     },
   });
@@ -118,6 +127,13 @@ async function adminRoute(request, env, options, url, method) {
   if (method === "GET" && path === "/api/admin/ping") return json({ ok: true });
 
   if (method === "GET" && path === "/api/admin/items") return json(await adminOverview(env.DB));
+
+  // Порядок показа: список всех номеров товаров в нужной последовательности.
+  if (method === "PUT" && path === "/api/admin/order") {
+    const body = await readJson(request, 32768);
+    const result = await reorderItems(env.DB, body?.ids);
+    return json(result.ok ? { ok: true } : { error: result.error }, result.status);
+  }
 
   const item = /^\/api\/admin\/items\/(\d+)$/.exec(path);
   if (item && method === "PATCH") {
@@ -135,7 +151,9 @@ async function adminRoute(request, env, options, url, method) {
   if (method === "POST" && path === "/api/admin/sync") return json(await runSync(env.DB, options));
 
   if (method === "GET" && path === "/api/admin/stats") {
-    const days = Math.min(Math.max(Number(url.searchParams.get("days")) || 7, 1), 90);
+    // days=0 — за всё время; иначе от 1 до 3650 дней, по умолчанию 7.
+    const raw = url.searchParams.get("days");
+    const days = raw === "0" ? 0 : Math.min(Math.max(Number(raw) || 7, 1), 3650);
     return json(await getStats(env.DB, { days }));
   }
 

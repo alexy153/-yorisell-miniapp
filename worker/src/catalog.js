@@ -85,8 +85,3 @@ export async function getItemDetail(db, id) {
     photos: photos.map((photo) => `/img/${photo.id}`),
   };
 }
-
-export async function getPhoto(db, id) {
-  const row = await first(db, "SELECT body, content_type FROM photos WHERE id = ?", [id]);
-  return row && row.body ? row : null;
-}

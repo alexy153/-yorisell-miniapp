@@ -1,8 +1,8 @@
 // Админ-функции. Вызываются только после проверки подписи (см. router.js и auth.js).
 import { all, first, run } from "./db.js";
 import { CATEGORY_ORDER } from "./catalog.js";
-import { refreshItem, syncChannel, lastSync } from "./sync.js";
-import { fetchText as defaultFetchText, fetchBytes as defaultFetchBytes } from "./fetchers.js";
+import { refreshItem, syncChannel, lastSync, DEFAULT_BUDGET } from "./sync.js";
+import { fetchText as defaultFetchText } from "./fetchers.js";
 
 // Поля, которые владелец правит вручную: синхронизация их потом не перезаписывает.
 const MANUAL = new Set(["title", "description", "category"]);
@@ -18,6 +18,11 @@ export async function listAdminItems(db) {
      FROM items i
      ORDER BY (i.sort_order IS NULL), i.sort_order, i.published_at DESC, i.id DESC`,
   );
+  const photoIds = new Map();
+  for (const row of await all(db, "SELECT id, item_id FROM photos ORDER BY item_id, position")) {
+    if (!photoIds.has(row.item_id)) photoIds.set(row.item_id, []);
+    photoIds.get(row.item_id).push(row.id);
+  }
   return rows.map((row) => ({
     id: row.id,
     title: row.title,
@@ -35,6 +40,7 @@ export async function listAdminItems(db) {
     soldEffective: row.sold_manual === null ? row.sold_channel === 1 : row.sold_manual === 1,
     sortOrder: row.sort_order,
     coverPhotoId: row.cover_photo_id,
+    photoIds: photoIds.get(row.id) ?? [],
     photoCount: row.photo_count,
     cachedCount: row.cached_count,
     manualFields: JSON.parse(row.manual_fields),
@@ -43,9 +49,11 @@ export async function listAdminItems(db) {
 
 // Возвращает { status, ok? , error? }. Проверяет каждое поле, прежде чем менять базу.
 export async function patchItem(db, id, body) {
+  const fail = (error) => ({ status: 400, error });
+  if (!body || typeof body !== "object" || Array.isArray(body)) return fail("нужен JSON-объект с полями");
+
   const item = await first(db, "SELECT id, manual_fields FROM items WHERE id = ?", [id]);
   if (!item) return { status: 404, error: "товар не найден" };
-  const fail = (error) => ({ status: 400, error });
 
   const sets = [];
   const params = [];
@@ -117,13 +125,31 @@ export async function patchItem(db, id, body) {
   return { status: 200, ok: true };
 }
 
+// Порядок показа: список всех номеров товаров в нужной последовательности.
+// Записываем одним запросом: номер в списке становится sort_order.
+export async function reorderItems(db, ids) {
+  const fail = (status, error) => ({ status, error });
+  if (!Array.isArray(ids) || ids.length === 0) return fail(400, "ids: список номеров товаров");
+  if (!ids.every((id) => Number.isInteger(id) && id > 0)) return fail(400, "ids: только целые номера");
+  if (new Set(ids).size !== ids.length) return fail(400, "ids: номера не должны повторяться");
+
+  const known = await all(db, "SELECT id FROM items");
+  const knownIds = new Set(known.map((row) => row.id));
+  if (known.length !== ids.length || ids.some((id) => !knownIds.has(id))) {
+    return fail(409, "список товаров устарел: обновите страницу");
+  }
+
+  await run(db, "UPDATE items SET sort_order = (SELECT j.key FROM json_each(?) AS j WHERE j.value = items.id)", [
+    JSON.stringify(ids),
+  ]);
+  return { status: 200, ok: true };
+}
+
 export async function runSync(db, deps = {}) {
   return syncChannel(db, {
     fetchText: deps.fetchText ?? defaultFetchText,
-    fetchBytes: deps.fetchBytes ?? defaultFetchBytes,
     now: new Date(),
-    pageBudget: 6,
-    photoBudget: 25,
+    budget: DEFAULT_BUDGET,
   });
 }
 

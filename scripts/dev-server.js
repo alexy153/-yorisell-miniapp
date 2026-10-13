@@ -34,6 +34,9 @@ const DB = openDatabase(join(DATA, "dev.sqlite"));
 // Секреты для локальной разработки не настоящие. ADMIN_ID пустой: админка здесь закрыта.
 const env = { DB, BOT_TOKEN: "dev-token-not-real", ADMIN_ID: process.env.ADMIN_ID ?? "" };
 
+// Загрузчики: с настоящего канала (LIVE=1) или из сохранённых фикстур без сети.
+const loaders = LIVE ? { fetchText, fetchBytes } : fixtureFetchers();
+
 // Оффлайн-загрузчики: страницы берём из фикстур, фото — простые серые картинки.
 function fixtureFetchers() {
   const pages = new Map([
@@ -60,9 +63,15 @@ function placeholderImage(url) {
 async function seedCatalog() {
   const row = await first(DB, "SELECT COUNT(*) AS n FROM items");
   if (row.n > 0 && !LIVE) return;
-  const source = LIVE ? { fetchText, fetchBytes } : fixtureFetchers();
-  const result = await syncChannel(DB, { ...source, now: new Date(), pageBudget: 6, photoBudget: 100 });
-  console.log(`каталог: новых товаров ${result.created}, фото скачано ${result.photosCached}`);
+  // Локально обращения ничем не ограничены, поэтому архив загружается целиком.
+  const result = await syncChannel(DB, {
+    fetchText: loaders.fetchText,
+    now: new Date(),
+    budget: Number.POSITIVE_INFINITY,
+  });
+  console.log(
+    `каталог: новых товаров ${result.created}, архив ${result.archiveDone ? "загружен целиком" : "загружен не полностью"}`,
+  );
 }
 
 async function toWebRequest(req) {
@@ -82,7 +91,8 @@ async function toWebRequest(req) {
 }
 
 async function serveStatic(pathname, res) {
-  const relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname.slice(1));
+  let relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname.slice(1));
+  if (relative.endsWith("/")) relative += "index.html"; // как у Cloudflare: /admin/ открывает admin/index.html
   const file = resolve(WEB, normalize(relative));
   if (!file.startsWith(WEB + sep)) {
     res.writeHead(403).end("запрещено");
@@ -104,7 +114,7 @@ const server = createServer(async (req, res) => {
   const { pathname } = new URL(req.url, "http://localhost");
   try {
     if (pathname.startsWith("/api/") || pathname.startsWith("/img/")) {
-      const response = await handleRequest(await toWebRequest(req), env, {});
+      const response = await handleRequest(await toWebRequest(req), env, { ...loaders });
       res.writeHead(response.status, Object.fromEntries(response.headers));
       res.end(Buffer.from(await response.arrayBuffer()));
       return;

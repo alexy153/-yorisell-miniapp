@@ -9,7 +9,7 @@ const NOW = new Date("2026-10-13T10:00:00Z");
 
 async function syncedEnv() {
   const env = createTestEnv();
-  await syncChannel(env.DB, { ...fixtureFetchers(), now: NOW, photoBudget: 100 });
+  await syncChannel(env.DB, { ...fixtureFetchers(), now: NOW, budget: Number.POSITIVE_INFINITY });
   return env;
 }
 

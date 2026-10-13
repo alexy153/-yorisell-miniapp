@@ -22,7 +22,8 @@ export async function recordEvent(db, { kind, itemId = 0, now = new Date() }) {
 }
 
 export async function getStats(db, { days = 7, now = new Date() } = {}) {
-  const since = dayKey(new Date(now.getTime() - (days - 1) * DAY_MS));
+  // days = 0 — за всё время: строка «0000-00-00» меньше любой даты, поэтому фильтр пропускает все дни.
+  const since = days > 0 ? dayKey(new Date(now.getTime() - (days - 1) * DAY_MS)) : "0000-00-00";
   const perDay = await all(
     db,
     "SELECT day, SUM(n) AS n FROM events WHERE day >= ? AND kind = 'visit' GROUP BY day ORDER BY day",

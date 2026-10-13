@@ -1,0 +1,23 @@
+# Настройки выкладки Cloudflare. Секреты сюда не пишем: BOT_TOKEN и ADMIN_ID задаются командой
+# `npx wrangler secret put` (см. docs/deploy.md).
+
+name = "yorisell"
+main = "worker/src/index.js"
+compatibility_date = "2025-09-01"
+
+# Статика приложения (web/): покупатель открывает /, админка — /admin/.
+# Запросы /api/* и /img/* не совпадают с файлами, поэтому попадают в Worker.
+[assets]
+directory = "./web"
+binding = "ASSETS"
+
+# База D1. database_id появляется после `npx wrangler d1 create yorisell`: вставьте его сюда.
+[[d1_databases]]
+binding = "DB"
+database_name = "yorisell"
+database_id = "ЗАМЕНИТЕ-НА-ID-ИЗ-wrangler-d1-create"
+migrations_dir = "worker/migrations"
+
+# Обновление каталога из канала каждые 30 минут.
+[triggers]
+crons = ["*/30 * * * *"]

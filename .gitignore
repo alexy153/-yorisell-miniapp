@@ -1,0 +1,10 @@
+# Секреты и локальные настройки
+.env
+.dev.vars
+
+# Локальные служебные папки
+.wrangler/
+node_modules/
+
+# Файлы macOS
+.DS_Store

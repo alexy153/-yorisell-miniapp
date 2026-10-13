@@ -8,3 +8,6 @@ node_modules/
 
 # Файлы macOS
 .DS_Store
+
+# Локальная база для разработки
+data/

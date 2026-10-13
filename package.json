@@ -5,9 +5,10 @@
   "description": "Telegram Mini App каталога магазина Yorisell",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13"
   },
   "scripts": {
-    "test": "node --test \"tests/*.test.js\""
+    "test": "node --no-warnings --test \"tests/*.test.js\"",
+    "dev": "node --no-warnings scripts/dev-server.js"
   }
 }

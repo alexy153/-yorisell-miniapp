@@ -7,12 +7,25 @@ import { createTestEnv, fixtureFetchers, fixtureText } from "./helpers.js";
 
 const NOW = new Date("2026-10-13T10:00:00Z");
 const NO_LIMIT = Number.POSITIVE_INFINITY;
+const OLDER_PAGE = "https://t.me/s/Yorisell?before=166";
+
+// Страницы «до номера» для всех постов канала: по ним догружаются фото старых товаров.
+function allPages() {
+  const pages = {};
+  for (let n = 149; n <= 166; n++) pages[`https://t.me/s/Yorisell?before=${n}`] = fixtureText("channel-older.html");
+  for (let n = 171; n <= 188; n++) pages[`https://t.me/s/Yorisell?before=${n}`] = fixtureText("channel-latest.html");
+  return pages;
+}
 
 async function count(db, sql) {
   return (await first(db, sql)).n;
 }
 
-test("первая синхронизация: 8 товаров, 4 пометки SOLD, 40 фото записаны ссылками, файлы не качаются", async () => {
+async function exec(db, sql, params = []) {
+  return db.prepare(sql).bind(...params).run();
+}
+
+test("первая синхронизация: 8 товаров, 4 пометки SOLD, все 40 фото сохранены в базе", async () => {
   const env = createTestEnv();
   const fetchers = fixtureFetchers();
   const result = await syncChannel(env.DB, { ...fetchers, now: NOW, budget: NO_LIMIT });
@@ -22,11 +35,11 @@ test("первая синхронизация: 8 товаров, 4 пометк�
   assert.equal(result.soldMarks, 4);
   assert.equal(result.archiveDone, true);
   assert.equal(result.stopped, null);
+  assert.equal(result.photosSaved, 40);
   assert.equal(await count(env.DB, "SELECT COUNT(*) AS n FROM items"), 8);
   assert.equal(await count(env.DB, "SELECT COUNT(*) AS n FROM photos"), 40);
-  // Фото скачиваются при первом показе, а не во время синхронизации.
-  assert.equal(await count(env.DB, "SELECT COUNT(*) AS n FROM photos WHERE body IS NULL"), 40);
-  assert.equal(fetchers.photoRequests.length, 0);
+  assert.equal(await count(env.DB, "SELECT COUNT(*) AS n FROM photos WHERE body IS NULL"), 0);
+  assert.equal(fetchers.photoRequests.length, 40);
 });
 
 test("архив идёт назад от первой страницы и останавливается на пустой", async () => {
@@ -49,22 +62,26 @@ test("повторная синхронизация без изменений н
   assert.equal(again.created, 0);
   assert.equal(again.updated, 0);
   assert.equal(again.soldMarks, 0);
+  assert.equal(again.photosSaved, 0);
   assert.equal(again.pages, 1);
   assert.deepEqual(fetchers.pageRequests, ["https://t.me/s/Yorisell"]);
-  // Чтение: три таблицы, курсор и первая страница. Записей нет.
-  assert.equal(again.used, 5);
+  assert.equal(fetchers.photoRequests.length, 0);
+  // Чтение: четыре таблицы (товары, фото, пометки, фото без копии), курсор и первая страница. Записей нет.
+  assert.equal(again.used, 6);
   assert.equal(await count(env.DB, "SELECT COUNT(*) AS n FROM items"), 8);
 });
 
-test("бюджет ограничивает запуск, а следующие запуски догружают архив до конца", async () => {
+test("бюджет ограничивает запуск, а следующие запуски догружают архив и фото до конца", async () => {
   const env = createTestEnv();
-  const fetchers = fixtureFetchers();
+  const fetchers = fixtureFetchers({ pages: allPages() });
   const reports = [];
   let report;
+  let unsaved;
   do {
     report = await syncChannel(env.DB, { ...fetchers, now: NOW, budget: 12 });
     reports.push(report);
-  } while (!report.archiveDone && reports.length < 50);
+    unsaved = await count(env.DB, "SELECT COUNT(*) AS n FROM photos WHERE body IS NULL");
+  } while ((!report.archiveDone || unsaved > 0) && reports.length < 300);
 
   assert.ok(reports.length > 1, "архив не должен уместиться в один запуск с таким бюджетом");
   assert.equal(reports[0].stopped, "budget");
@@ -76,6 +93,31 @@ test("бюджет ограничивает запуск, а следующие 
   assert.equal(await count(env.DB, "SELECT COUNT(*) AS n FROM items"), 8);
   assert.equal(await count(env.DB, "SELECT COUNT(*) AS n FROM sold_marks"), 4);
   assert.equal(await count(env.DB, "SELECT COUNT(*) AS n FROM photos"), 40);
+  assert.equal(await count(env.DB, "SELECT COUNT(*) AS n FROM photos WHERE body IS NULL"), 0);
+});
+
+test("фото, которые не сохранились, догружаются на следующем запуске, пока ссылка свежая", async () => {
+  const env = createTestEnv();
+  await syncChannel(env.DB, { ...fixtureFetchers(), now: NOW, budget: NO_LIMIT });
+  const before = await count(env.DB, "SELECT COUNT(*) AS n FROM photos WHERE item_id = 170");
+  await exec(env.DB, "UPDATE photos SET body = NULL WHERE item_id = 170");
+
+  const again = await syncChannel(env.DB, { ...fixtureFetchers(), now: NOW, budget: NO_LIMIT });
+  assert.equal(again.photosSaved, before);
+  assert.equal(await count(env.DB, "SELECT COUNT(*) AS n FROM photos WHERE item_id = 170 AND body IS NULL"), 0);
+});
+
+test("фото старых постов догружаются со страницы поста, когда их не сохранили раньше", async () => {
+  const env = createTestEnv();
+  await syncChannel(env.DB, { ...fixtureFetchers(), now: NOW, budget: NO_LIMIT });
+  const before = await count(env.DB, "SELECT COUNT(*) AS n FROM photos WHERE item_id = 165");
+  await exec(env.DB, "UPDATE photos SET body = NULL WHERE item_id = 165");
+
+  const fetchers = fixtureFetchers({ pages: { [OLDER_PAGE]: fixtureText("channel-older.html") } });
+  const again = await syncChannel(env.DB, { ...fetchers, now: NOW, budget: NO_LIMIT });
+  assert.equal(again.photosSaved, before);
+  assert.ok(fetchers.pageRequests.includes(OLDER_PAGE));
+  assert.equal(await count(env.DB, "SELECT COUNT(*) AS n FROM photos WHERE item_id = 165 AND body IS NULL"), 0);
 });
 
 test("ручная правка владельца не перезаписывается синхронизацией", async () => {
@@ -114,12 +156,12 @@ test("обновление одного товара читает страниц
   const env = createTestEnv();
   await syncChannel(env.DB, { ...fixtureFetchers(), now: NOW, budget: NO_LIMIT });
   const older = fixtureText("channel-older.html").replace("Худи Burberry Brit", "Худи Burberry Brit (обновлено)");
-  const fetchers = fixtureFetchers({ pages: { "https://t.me/s/Yorisell?before=166": older } });
+  const fetchers = fixtureFetchers({ pages: { [OLDER_PAGE]: older } });
 
   const result = await refreshItem(env.DB, { itemId: 165, fetchText: fetchers.fetchText, now: NOW });
   assert.equal(result.found, true);
   assert.equal(result.updated, 1);
-  assert.deepEqual(fetchers.pageRequests, ["https://t.me/s/Yorisell?before=166"]);
+  assert.deepEqual(fetchers.pageRequests, [OLDER_PAGE]);
   const row = await first(env.DB, "SELECT title FROM items WHERE id = 165");
   assert.equal(row.title, "Худи Burberry Brit (обновлено)");
 });

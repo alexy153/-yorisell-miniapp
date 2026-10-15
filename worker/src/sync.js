@@ -1,10 +1,12 @@
-// Синхронизация каталога с каналом: страницы t.me/s → товары и пометки SOLD.
+// Синхронизация каталога с каналом: страницы t.me/s → товары, фото и пометки SOLD.
 // Бесплатный Worker разрешает до 50 обращений к базе и к сети на один запуск, поэтому каждый запуск
 // укладывается в бюджет. Что уже записано, второй раз не пишем: повторный запуск без изменений
 // только читает. Архив старых постов идёт порциями: курсор сохраняется, и следующий запуск
 // (расписание или кнопка в админке) продолжает с того же места.
+// Фото копируем в базу, пока ссылки Telegram свежие: со временем они перестают работать.
 import { parseChannelPage } from "./parser.js";
 import { all, first, run } from "./db.js";
+import { fetchBytes as defaultFetchBytes, isChannelPhotoUrl } from "./fetchers.js";
 
 export const CHANNEL = "Yorisell";
 // Запас до лимита 50: на итоговые записи и на непредвиденные обращения.
@@ -64,6 +66,10 @@ function createMeter(db, budget) {
       meter.left -= 1;
       meter.spent += 1;
     },
+    // Можно ли ещё потратить count обращений, не трогая резерв на итоговые записи.
+    canSpend(count) {
+      return meter.left - meter.reserve >= count;
+    },
     all(sql, params = []) {
       meter.spend();
       return all(db, sql, params);
@@ -76,9 +82,9 @@ function createMeter(db, budget) {
       meter.spend();
       return run(db, sql, params);
     },
-    fetch(fetchText, url) {
+    fetch(fetchFn, url) {
       meter.spend();
-      return fetchText(url);
+      return fetchFn(url);
     },
   };
   return meter;
@@ -93,6 +99,7 @@ function emptyReport(at) {
     created: 0,
     updated: 0,
     soldMarks: 0,
+    photosSaved: 0,
     archiveDone: false,
     stopped: null,
     error: null,
@@ -101,7 +108,7 @@ function emptyReport(at) {
 }
 
 // Всё, что уже есть в базе, читаем разом: дальше сравниваем в памяти и пишем только изменения.
-async function loadState(meter) {
+async function loadState(meter, fetchBytes) {
   const items = new Map();
   const rows = await meter.all(
     `SELECT id, title, category, description, item_condition, size, size_note, fit, price_rub,
@@ -114,8 +121,14 @@ async function loadState(meter) {
   for (const row of await meter.all("SELECT item_id, COUNT(*) AS n FROM photos GROUP BY item_id")) {
     photos.set(row.item_id, row.n);
   }
+  // Фото без сохранённой копии: их нужно догрузить, пока есть свежая ссылка.
+  const missing = new Map();
+  for (const row of await meter.all("SELECT item_id, position FROM photos WHERE body IS NULL")) {
+    if (!missing.has(row.item_id)) missing.set(row.item_id, new Set());
+    missing.get(row.item_id).add(row.position);
+  }
   const sold = new Set((await meter.all("SELECT item_id FROM sold_marks")).map((row) => row.item_id));
-  return { items, photos, sold };
+  return { items, photos, missing, sold, fetchBytes };
 }
 
 async function loadArchive(meter) {
@@ -164,28 +177,84 @@ async function applyListing(meter, state, message, nowIso, report) {
       report.updated++;
     }
   }
-  await syncPhotos(meter, state, message.postId, message.photos ?? []);
+  const urls = message.photos ?? [];
+  await syncPhotos(meter, state, message.postId, urls);
+  await warmPhotos(meter, state, message.postId, urls, report);
   report.listings++;
 }
 
-// Фото сверяем по количеству. Ссылки CDN могут меняться, а содержимое поста — нет,
-// поэтому уже сохранённые копии не трогаем: добавляем недостающие позиции и убираем лишние.
+function missingSet(state, itemId) {
+  if (!state.missing.has(itemId)) state.missing.set(itemId, new Set());
+  return state.missing.get(itemId);
+}
+
+// Фото сверяем по количеству позиций: недостающие добавляем, лишние убираем.
+// Уже сохранённые копии не трогаем.
 async function syncPhotos(meter, state, itemId, urls) {
   const stored = state.photos.get(itemId) ?? 0;
+  const missing = missingSet(state, itemId);
   if (stored < urls.length) {
-    const missing = urls.slice(stored);
-    for (let offset = 0; offset < missing.length; offset += PHOTO_ROWS_PER_INSERT) {
-      const chunk = missing.slice(offset, offset + PHOTO_ROWS_PER_INSERT);
+    const added = urls.slice(stored);
+    for (let offset = 0; offset < added.length; offset += PHOTO_ROWS_PER_INSERT) {
+      const chunk = added.slice(offset, offset + PHOTO_ROWS_PER_INSERT);
       const params = chunk.flatMap((url, index) => [itemId, stored + offset + index, url]);
       await meter.run(
         `INSERT OR IGNORE INTO photos (item_id, position, source_url) VALUES ${chunk.map(() => "(?, ?, ?)").join(", ")}`,
         params,
       );
     }
+    for (let position = stored; position < urls.length; position++) missing.add(position);
     state.photos.set(itemId, urls.length);
   } else if (stored > urls.length) {
     await meter.run("DELETE FROM photos WHERE item_id = ? AND position >= ?", [itemId, urls.length]);
+    for (const position of [...missing]) if (position >= urls.length) missing.delete(position);
     state.photos.set(itemId, urls.length);
+  }
+}
+
+// Копируем в базу фото без сохранённой копии, пока ссылки на странице свежие.
+// Одна копия — два обращения: скачать и записать. Если бюджета не хватает, догрузим в следующем запуске.
+async function warmPhotos(meter, state, itemId, urls, report) {
+  const missing = state.missing.get(itemId);
+  if (!missing || missing.size === 0) return;
+  for (const position of [...missing].sort((a, b) => a - b)) {
+    const url = urls[position];
+    if (!url || !isChannelPhotoUrl(url)) continue;
+    if (!meter.canSpend(2)) return;
+    let file;
+    try {
+      file = await meter.fetch(state.fetchBytes, url);
+    } catch {
+      continue; // ссылка не открылась: попробуем в другой раз
+    }
+    await meter.run("UPDATE photos SET source_url = ?, body = ?, content_type = ? WHERE item_id = ? AND position = ?", [
+      url,
+      file.bytes,
+      file.contentType,
+      itemId,
+      position,
+    ]);
+    missing.delete(position);
+    report.photosSaved++;
+  }
+}
+
+// Фото, которые не удалось сохранить раньше (не хватило бюджета), догружаем со страницы поста:
+// там ссылки свежие. Новые посты идут первыми, пока есть бюджет.
+async function warmBacklog(meter, state, fetchText, report) {
+  const ids = [...state.missing]
+    .filter(([, positions]) => positions.size > 0)
+    .map(([itemId]) => itemId)
+    .sort((a, b) => b - a);
+  for (const itemId of ids) {
+    if (!meter.canSpend(3)) return;
+    try {
+      const messages = parseChannelPage(await meter.fetch(fetchText, pageUrl(itemId + 1)));
+      const post = messages.find((message) => message.postId === itemId && message.kind === "listing");
+      if (post) await warmPhotos(meter, state, itemId, post.photos ?? [], report);
+    } catch {
+      // страница не открылась: попробуем в следующем запуске
+    }
   }
 }
 
@@ -253,7 +322,10 @@ async function syncArchive(meter, state, fetchText, nowIso, report, archive) {
 
 // Полная синхронизация в пределах бюджета. Ошибка сети или исчерпанный бюджет не роняют запуск:
 // в отчёте видно, на чём остановились, и следующий запуск продолжит оттуда же.
-export async function syncChannel(db, { fetchText, now = new Date(), budget = DEFAULT_BUDGET }) {
+export async function syncChannel(
+  db,
+  { fetchText, fetchBytes = defaultFetchBytes, now = new Date(), budget = DEFAULT_BUDGET },
+) {
   const nowIso = now.toISOString();
   const meter = createMeter(db, budget);
   const report = emptyReport(nowIso);
@@ -261,11 +333,12 @@ export async function syncChannel(db, { fetchText, now = new Date(), budget = DE
   let archiveBefore = null;
 
   try {
-    const state = await loadState(meter);
+    const state = await loadState(meter, fetchBytes);
     Object.assign(archive, await loadArchive(meter));
     archiveBefore = JSON.stringify(archive);
     await syncLatest(meter, state, fetchText, nowIso, report, archive);
     await syncArchive(meter, state, fetchText, nowIso, report, archive);
+    await warmBacklog(meter, state, fetchText, report);
   } catch (error) {
     report.stopped = error instanceof BudgetExhausted ? "budget" : "error";
     if (report.stopped === "error") report.error = String(error?.message ?? error);
@@ -287,16 +360,31 @@ export async function syncChannel(db, { fetchText, now = new Date(), budget = DE
 }
 
 // Обновляет один товар: читает страницу, где есть его пост, и применяет только его.
-export async function refreshItem(db, { itemId, fetchText, now = new Date(), budget = DEFAULT_BUDGET }) {
+export async function refreshItem(
+  db,
+  { itemId, fetchText, fetchBytes = defaultFetchBytes, now = new Date(), budget = DEFAULT_BUDGET },
+) {
   const nowIso = now.toISOString();
   const meter = createMeter(db, budget);
   const messages = parseChannelPage(await meter.fetch(fetchText, pageUrl(itemId + 1)));
   const own = messages.filter((message) => message.postId === itemId && message.kind === "listing");
   if (own.length === 0) return { found: false };
-  const state = await loadState(meter);
+  const state = await loadState(meter, fetchBytes);
   const report = emptyReport(nowIso);
   await applyPage(meter, state, own, nowIso, report);
   return { found: true, created: report.created, updated: report.updated, listings: report.listings };
+}
+
+// Ссылки Telegram временные. Свежие ссылки берём со страницы поста и запоминаем по позициям.
+export async function freshPhotoUrls(db, itemId, fetchText) {
+  const messages = parseChannelPage(await fetchText(pageUrl(itemId + 1)));
+  const post = messages.find((message) => message.postId === itemId && message.kind === "listing");
+  const fresh = new Map();
+  (post?.photos ?? []).forEach((url, position) => fresh.set(position, url));
+  for (const [position, url] of fresh) {
+    await run(db, "UPDATE photos SET source_url = ? WHERE item_id = ? AND position = ?", [url, itemId, position]);
+  }
+  return fresh;
 }
 
 export async function lastSync(db) {

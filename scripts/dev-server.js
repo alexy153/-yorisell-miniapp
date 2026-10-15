@@ -66,6 +66,7 @@ async function seedCatalog() {
   // Локально обращения ничем не ограничены, поэтому архив загружается целиком.
   const result = await syncChannel(DB, {
     fetchText: loaders.fetchText,
+    fetchBytes: loaders.fetchBytes,
     now: new Date(),
     budget: Number.POSITIVE_INFINITY,
   });

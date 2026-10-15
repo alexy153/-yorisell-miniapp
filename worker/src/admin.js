@@ -145,9 +145,11 @@ export async function reorderItems(db, ids) {
   return { status: 200, ok: true };
 }
 
+// Загрузчики передаём только если они заданы: иначе берутся настоящие (на Cloudflare — по умолчанию).
 export async function runSync(db, deps = {}) {
   return syncChannel(db, {
     fetchText: deps.fetchText ?? defaultFetchText,
+    fetchBytes: deps.fetchBytes,
     now: new Date(),
     budget: DEFAULT_BUDGET,
   });
@@ -157,6 +159,7 @@ export async function refreshOne(db, id, deps = {}) {
   return refreshItem(db, {
     itemId: id,
     fetchText: deps.fetchText ?? defaultFetchText,
+    fetchBytes: deps.fetchBytes,
     now: new Date(),
   });
 }

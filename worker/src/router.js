@@ -102,11 +102,11 @@ async function publicRoute(request, env, url, method) {
   return notFound();
 }
 
-// Фото отдаём из базы; при первом показе копия скачивается из CDN канала.
+// Фото отдаём из базы. Копия сохраняется при синхронизации; если её нет, берём из CDN канала.
 async function imageResponse(env, id, options) {
   let photo;
   try {
-    photo = await loadPhoto(env.DB, id, options.fetchBytes);
+    photo = await loadPhoto(env.DB, id, options);
   } catch (error) {
     // CDN недоступен или база не ответила: покупателю — 404, подробности — в журнал.
     console.error(error);
@@ -116,7 +116,7 @@ async function imageResponse(env, id, options) {
   return new Response(photo.body, {
     headers: {
       "content-type": photo.content_type,
-      "cache-control": "public, max-age=86400",
+      "cache-control": "public, max-age=2592000",
     },
   });
 }

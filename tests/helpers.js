@@ -56,6 +56,8 @@ export function fixtureFetchers({ pages = {} } = {}) {
   const map = new Map([
     ["https://t.me/s/Yorisell", fixtureText("channel-latest.html")],
     ["https://t.me/s/Yorisell?before=170", fixtureText("channel-older.html")],
+    // Страница «до номера 171» — это посты от 170 и выше: по ней находим ссылки поста 170.
+    ["https://t.me/s/Yorisell?before=171", fixtureText("channel-latest.html")],
     ...Object.entries(pages),
   ]);
   const pageRequests = [];

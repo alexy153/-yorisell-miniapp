@@ -1,26 +1,32 @@
-// Фото: копия из CDN Telegram сохраняется в базе при первом показе, дальше отдаётся из базы.
-// Скачиваем только ссылки, которые пришли из канала: адрес в базе не должен вести куда угодно.
+// Фото: копия из CDN Telegram хранится в базе. Если копии нет или ссылка устарела, берём свежую
+// ссылку со страницы поста. Скачиваем только адреса из канала.
 import { first, run } from "./db.js";
-import { fetchBytes as defaultFetchBytes } from "./fetchers.js";
+import { fetchBytes as defaultFetchBytes, fetchText as defaultFetchText, isChannelPhotoUrl } from "./fetchers.js";
+import { freshPhotoUrls } from "./sync.js";
 
-export function isChannelPhotoUrl(value) {
-  let url;
+async function download(url, fetchBytes) {
+  if (!url || !isChannelPhotoUrl(url)) return null;
   try {
-    url = new URL(value);
+    return await fetchBytes(url);
   } catch {
-    return false;
+    return null;
   }
-  return url.protocol === "https:" && (url.hostname === "telesco.pe" || url.hostname.endsWith(".telesco.pe"));
 }
 
 // Возвращает { body, content_type } или null, если фото нет или его не удалось получить.
-export async function loadPhoto(db, id, fetchBytes = defaultFetchBytes) {
-  const row = await first(db, "SELECT source_url, body, content_type FROM photos WHERE id = ?", [id]);
+export async function loadPhoto(db, id, { fetchBytes = defaultFetchBytes, fetchText = defaultFetchText } = {}) {
+  const row = await first(db, "SELECT item_id, position, source_url, body, content_type FROM photos WHERE id = ?", [id]);
   if (!row) return null;
   if (row.body) return { body: row.body, content_type: row.content_type || "image/jpeg" };
-  if (!isChannelPhotoUrl(row.source_url)) return null;
 
-  const { bytes, contentType } = await fetchBytes(row.source_url);
-  await run(db, "UPDATE photos SET body = ?, content_type = ? WHERE id = ?", [bytes, contentType, id]);
-  return { body: bytes, content_type: contentType };
+  let file = await download(row.source_url, fetchBytes);
+  if (!file) {
+    // Ссылка устарела или CDN не отдал файл: берём свежую со страницы поста и пробуем ещё раз.
+    const fresh = await freshPhotoUrls(db, row.item_id, fetchText);
+    file = await download(fresh.get(row.position), fetchBytes);
+  }
+  if (!file) return null;
+
+  await run(db, "UPDATE photos SET body = ?, content_type = ? WHERE id = ?", [file.bytes, file.contentType, id]);
+  return { body: file.bytes, content_type: file.contentType };
 }

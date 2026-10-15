@@ -80,24 +80,23 @@ test("события: показ и открытие принимаются, н�
   assert.equal(huge.status, 413);
 });
 
-test("картинки: первый показ скачивает копию из CDN, следующие отдаются из базы", async () => {
+test("картинки: копии сохраняются при синхронизации, показ не ходит в CDN", async () => {
   const { env, fetchers, options } = await setup();
   const detail = await (await handleRequest(request("/api/items/170"), env, options)).json();
+  const downloaded = fetchers.photoRequests.length;
 
-  const firstShow = await handleRequest(request(detail.coverUrl), env, options);
-  assert.equal(firstShow.status, 200);
-  assert.equal(firstShow.headers.get("content-type"), "image/png");
-  assert.match(firstShow.headers.get("cache-control"), /max-age/);
-  assert.equal(fetchers.photoRequests.length, 1);
-
-  const again = await handleRequest(request(detail.coverUrl), env, options);
-  assert.equal(again.status, 200);
-  assert.equal(fetchers.photoRequests.length, 1, "повторный показ не ходит в CDN");
+  const response = await handleRequest(request(detail.coverUrl), env, options);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "image/png");
+  assert.match(response.headers.get("cache-control"), /max-age=2592000/);
+  assert.equal(fetchers.photoRequests.length, downloaded, "показ не ходит в CDN");
 });
 
-test("картинки: если CDN не отдал фото, покупатель получает 404, а не ошибку сервера", async () => {
+test("картинки: нет копии и CDN не отдал файл — 404, а не ошибка сервера", async () => {
   const { env, options } = await setup();
   const detail = await (await handleRequest(request("/api/items/170"), env, options)).json();
+  const photoId = Number(detail.coverUrl.split("/").pop());
+  await env.DB.prepare("UPDATE photos SET body = NULL WHERE id = ?").bind(photoId).run();
   const broken = {
     ...options,
     fetchBytes: async () => {
@@ -108,17 +107,41 @@ test("картинки: если CDN не отдал фото, покупате�
   assert.equal(response.status, 404);
 });
 
-test("картинки: адрес не из канала не скачивается", async () => {
+test("картинки: устаревшая ссылка — берём свежую со страницы поста и сохраняем копию", async () => {
+  const { env, options } = await setup();
+  const detail = await (await handleRequest(request("/api/items/170"), env, options)).json();
+  const photoId = Number(detail.coverUrl.split("/").pop());
+  await env.DB.prepare("UPDATE photos SET body = NULL, source_url = ? WHERE id = ?")
+    .bind("https://cdn4.telesco.pe/file/stale.jpg", photoId)
+    .run();
+  const withStale = {
+    ...options,
+    fetchBytes: async (url) => {
+      if (url.includes("stale")) throw new Error("ссылка устарела");
+      return options.fetchBytes(url);
+    },
+  };
+  const response = await handleRequest(request(detail.coverUrl), env, withStale);
+  assert.equal(response.status, 200);
+  const row = await env.DB.prepare("SELECT source_url, body FROM photos WHERE id = ?").bind(photoId).first();
+  assert.ok(!row.source_url.includes("stale"));
+  assert.ok(row.body);
+});
+
+test("картинки: чужой адрес в базе не скачивается, берём ссылку со страницы канала", async () => {
   const { env, fetchers, options } = await setup();
   const detail = await (await handleRequest(request("/api/items/170"), env, options)).json();
   const photoId = Number(detail.coverUrl.split("/").pop());
-  await env.DB.prepare("UPDATE photos SET source_url = ? WHERE id = ?")
+  await env.DB.prepare("UPDATE photos SET body = NULL, source_url = ? WHERE id = ?")
     .bind("https://evil.example/x.png", photoId)
     .run();
+  const before = fetchers.photoRequests.length;
 
   const response = await handleRequest(request(detail.coverUrl), env, options);
-  assert.equal(response.status, 404);
-  assert.equal(fetchers.photoRequests.length, 0);
+  assert.equal(response.status, 200);
+  const requested = fetchers.photoRequests.slice(before);
+  assert.ok(requested.length > 0);
+  assert.ok(requested.every((url) => url.startsWith("https://cdn4.telesco.pe/")));
 });
 
 test("админ-список: без подписи 401, с подписью другого пользователя 403, с подписью админа 200", async () => {

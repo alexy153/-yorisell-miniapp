@@ -205,8 +205,11 @@ function gridHtml(animate) {
 }
 
 // Без подписей поверх фото: если картинки нет, остаётся ровный серый фон плитки.
-function photoHtml(url) {
-  return url ? `<img src="${esc(url)}" alt="" loading="lazy" data-fallback>` : "";
+// Первые карточки грузятся сразу и с высоким приоритетом, остальные — по мере прокрутки.
+function photoHtml(url, priority = false) {
+  if (!url) return "";
+  const loading = priority ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"';
+  return `<img src="${esc(url)}" alt="" decoding="async" ${loading} data-fallback>`;
 }
 
 function cardHtml(item, index, animate) {
@@ -216,7 +219,7 @@ function cardHtml(item, index, animate) {
     <article class="card glass${item.sold ? " is-sold" : ""}" style="${delay}">
       <button class="card-link" type="button" data-open="${item.id}" aria-label="${esc(item.title)}, ${rub(item.priceRub)}"></button>
       <div class="photo">
-        ${photoHtml(item.coverUrl)}
+        ${photoHtml(item.coverUrl, index < 4)}
         <button class="heart${on ? " is-on" : ""}" type="button" data-fav="${item.id}" aria-pressed="${on}" aria-label="В избранное">${ICON.heart}</button>
         ${item.sold ? '<span class="sold-tag">Нет в наличии</span>' : ""}
       </div>
@@ -293,7 +296,7 @@ function productHtml(item) {
   const gallery = item.photos.length
     ? `<div class="gallery">
          <div class="gallery-track" id="gallery">
-           ${item.photos.map((url, i) => `<img src="${esc(url)}" alt="${esc(item.title)}, фото ${i + 1}" data-zoom="${esc(url)}" data-fallback>`).join("")}
+           ${item.photos.map((url, i) => `<img src="${esc(url)}" alt="${esc(item.title)}, фото ${i + 1}" data-zoom="${esc(url)}" data-fallback decoding="async" loading="${i === 0 ? "eager" : "lazy"}">`).join("")}
          </div>
          <div class="dots" id="dots">${item.photos.map((_, i) => `<span class="dot${i === 0 ? " is-active" : ""}"></span>`).join("")}</div>
        </div>`

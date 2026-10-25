@@ -1,34 +1,88 @@
-/* Yorisell: стеклянное приложение в тёмно-сером. Цвета и отступы — как в утверждённом макете. */
+/* Yorisell: чёрно-белый стиль в духе ReconVault. Светлая тема по умолчанию, тёмная («оникс») включается кнопкой в шапке. */
 
-@property --yo-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
+@font-face {
+  font-family: "Unbounded";
+  src: url("fonts/unbounded-cyr.woff2") format("woff2");
+  font-weight: 200 900;
+  font-display: swap;
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: "Unbounded";
+  src: url("fonts/unbounded-lat.woff2") format("woff2");
+  font-weight: 200 900;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Oswald";
+  src: url("fonts/oswald-cyr.woff2") format("woff2");
+  font-weight: 200 700;
+  font-display: swap;
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: "Oswald";
+  src: url("fonts/oswald-lat.woff2") format("woff2");
+  font-weight: 200 700;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 :root {
-  --bg: #2F3137;
-  --glass: rgba(255, 255, 255, 0.08);
-  --glass-strong: rgba(255, 255, 255, 0.14);
-  --glass-line: rgba(255, 255, 255, 0.14);
-  --outline: #15161A;
-  --text: #F7F5F0;
-  --text-2: #C7C2B8;
-  --accent-a: #EFEDE8;
-  --accent-b: #C7C4BC;
+  --bg: #FAFAFA;
+  --bg-glass: rgba(250, 250, 250, 0.84);
+  --surface: #F0F0F1;
+  --surface-2: #E6E6E8;
+  --line: rgba(10, 10, 12, 0.08);
+  --text: #0B0B0C;
+  --text-2: #6E6E73;
+  --ink: #0B0B0C;
+  --on-ink: #FFFFFF;
+  --sheen: rgba(255, 255, 255, 0.3);
+  --chip-glass: rgba(255, 255, 255, 0.86);
+  --shadow: 0 12px 32px rgba(10, 10, 12, 0.1);
+  --intro-ink: #0B0B0C;
   --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --condensed: "Oswald", "Arial Narrow", Impact, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0A0A0B;
+  --bg-glass: rgba(10, 10, 11, 0.84);
+  --surface: #151517;
+  --surface-2: #232326;
+  --line: rgba(255, 255, 255, 0.09);
+  --text: #F4F4F5;
+  --text-2: #8F8F96;
+  --ink: #F4F4F5;
+  --on-ink: #0A0A0B;
+  --sheen: rgba(0, 0, 0, 0.14);
+  --chip-glass: rgba(20, 20, 22, 0.82);
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --intro-ink: #F2F2F3;
   color-scheme: dark;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  /* Касание только для прокрутки и нажатий: щипок и двойное касание не увеличивают экран. */
+  touch-action: pan-x pan-y;
+}
 
 html, body {
   margin: 0;
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
@@ -37,9 +91,8 @@ button, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
-:focus-visible { outline: 2px solid var(--accent-a); outline-offset: 3px; }
-/* Касание только для прокрутки и нажатий: щипок и двойное касание не увеличивают экран. */
-* { touch-action: pan-x pan-y; }
+h1, h2, p { margin: 0; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 
 /* Оболочка: на телефоне — весь экран, на компьютере — колонка по ширине телефона. */
 .app {
@@ -51,618 +104,657 @@ img { display: block; max-width: 100%; }
   background: var(--bg);
 }
 
-.blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(60px);
-  pointer-events: none;
-}
-.blob-a { width: 260px; height: 260px; left: -90px; top: 110px; background: #5D626C; opacity: 0.5; }
-.blob-b { width: 240px; height: 240px; right: -90px; top: 400px; background: #4A4E57; opacity: 0.6; }
-.blob-c { width: 200px; height: 200px; left: 30px; bottom: 60px; background: #575C66; opacity: 0.45; }
-
 .view {
   position: relative;
   min-height: 100%;
-  padding: calc(28px + env(safe-area-inset-top, 0px)) 20px calc(120px + env(safe-area-inset-bottom, 0px));
-  transition: opacity 0.24s var(--ease-out), transform 0.24s var(--ease-out);
+  padding: calc(22px + var(--safe-top)) 20px calc(112px + var(--safe-bottom));
+  transition: opacity 0.22s var(--ease-out), transform 0.22s var(--ease-out);
 }
-.view.is-leaving { opacity: 0; transform: translateY(6px); transition-duration: 0.16s; }
+.view.is-leaving { opacity: 0; transform: translateX(var(--dx, 0px)); transition-duration: 0.15s; }
 
-.title {
-  margin: 0;
-  font-size: 30px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-}
-.subtitle { margin: 4px 0 0; font-size: 14px; color: var(--text-2); }
-.row-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.count-pill {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-2);
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-}
+/* ---------- Заставка ---------- */
 
-/* Стекло: общий рецепт для панелей и карточек. */
-.glass {
-  background: var(--glass);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid var(--glass-line);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px var(--outline), 0 12px 28px rgba(0, 0, 0, 0.3);
+.intro { position: fixed; inset: 0; z-index: 100; touch-action: none; }
+.intro-bg { position: absolute; inset: 0; background: var(--bg); transition: opacity 0.6s var(--ease-out); }
+.intro-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.intro.is-revealing { pointer-events: none; }
+.intro.is-revealing .intro-bg { opacity: 0; }
+
+/* Пока играет заставка, нижнее меню спрятано, потом выезжает. */
+.tabbar { transition: transform 0.7s var(--spring); }
+html.booting .tabbar { transform: translate(-50%, 130%); }
+
+/* ---------- Появление блоков ---------- */
+
+.rise { animation: rise 0.7s var(--ease-soft) var(--d, 0ms) backwards; }
+.reveal { opacity: 0; }
+.reveal.in { opacity: 1; animation: reveal 0.7s var(--ease-soft) var(--d, 0ms) backwards; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px); filter: blur(6px); }
+}
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); filter: blur(8px); }
 }
 
-.search {
-  margin-top: 18px;
-  height: 48px;
+/* ---------- Кнопки ---------- */
+
+.btn {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 16px;
-  border-radius: 999px;
-}
-.search input {
-  flex: 1;
-  min-width: 0;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 22px;
   border: 0;
-  outline: 0;
-  background: transparent;
+  border-radius: 999px;
   font-size: 15px;
+  font-weight: 700;
+  background: var(--ink);
+  color: var(--on-ink);
+  transition: transform 0.2s var(--ease-out), background-color 0.25s, opacity 0.25s;
 }
-.search input::placeholder { color: #8E8A82; }
+.btn:active { transform: scale(0.96); }
+.btn-ghost { background: var(--surface-2); color: var(--text); }
+.btn-sm { display: inline-flex; height: 40px; padding: 0 18px; font-size: 13px; }
+.btn[aria-disabled="true"] { opacity: 0.5; pointer-events: none; }
+/* Блик, который время от времени пробегает по главной кнопке. */
+.btn-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 32%, var(--sheen) 50%, transparent 68%);
+  transform: translateX(-130%);
+  animation: sheen 4s 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes sheen {
+  0%, 55% { transform: translateX(-130%); }
+  100% { transform: translateX(130%); }
+}
 
-/* Квадратные категории: горизонтальная лента, у края видно, что можно листать. */
-.tiles {
-  margin: 16px -20px 0;
-  padding: 0 20px;
+/* ---------- Шапка ---------- */
+
+.top { display: flex; align-items: center; gap: 12px; }
+.top-ava {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--line);
+}
+.top-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.top-name b { font-family: var(--display); font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.top-name span { font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.theme-btn {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  transition: transform 0.25s var(--spring), background-color 0.25s;
+}
+.theme-btn:active { transform: scale(0.88) rotate(20deg); }
+.theme-btn svg {
+  position: absolute;
+  inset: 11px;
+  width: 22px;
+  height: 22px;
+  transition: transform 0.6s var(--spring), opacity 0.3s;
+}
+.theme-btn .sun { opacity: 0; transform: rotate(-90deg) scale(0.3); }
+:root[data-theme="dark"] .theme-btn .sun { opacity: 1; transform: none; }
+:root[data-theme="dark"] .theme-btn .moon { opacity: 0; transform: rotate(90deg) scale(0.3); }
+
+/* Смена темы: новый вид расходится кругом от кнопки. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2; }
+
+/* ---------- Баннер с бегущей строкой ---------- */
+
+.banner {
+  position: relative;
+  margin-top: 18px;
+  padding: 16px 0 18px;
+  border-radius: 28px;
+  background: var(--ink);
+  color: var(--on-ink);
+  overflow: hidden;
+  isolation: isolate;
+}
+/* Плёночное зерно: мелкий шум, который едва заметно дрожит. */
+.banner::before {
+  content: "";
+  position: absolute;
+  inset: -40px;
+  z-index: -1;
+  opacity: 0.2;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.4 -.2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation: grain 0.9s steps(6) infinite;
+}
+@keyframes grain {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-14px, 8px); }
+  40% { transform: translate(10px, -12px); }
+  60% { transform: translate(-8px, -6px); }
+  80% { transform: translate(12px, 10px); }
+  100% { transform: translate(0, 0); }
+}
+.banner-tag {
+  display: inline-block;
+  margin-left: 18px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--on-ink);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.marquee { margin-top: 10px; overflow: hidden; white-space: nowrap; }
+.marquee-track {
+  display: inline-flex;
+  animation: marquee 24s linear infinite;
+  font-family: var(--condensed);
+  font-size: 68px;
+  font-weight: 600;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+.marquee-track span { padding-right: 26px; }
+.marquee-track .o { color: transparent; -webkit-text-stroke: 1.4px var(--on-ink); }
+@keyframes marquee { to { transform: translateX(-50%); } }
+.banner-title { margin: 8px 18px 0; font-family: var(--display); font-size: 15px; font-weight: 700; line-height: 1.35; letter-spacing: -0.01em; }
+.banner .btn {
+  margin: 14px 18px 0;
+  width: max-content;
+  background: var(--on-ink);
+  color: var(--ink);
+  --sheen: rgba(128, 128, 128, 0.28);
+}
+
+/* ---------- Категории, поиск, размеры ---------- */
+
+.pills, .chips, .rail {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  margin-left: -20px;
+  margin-right: -20px;
+  padding-left: 20px;
+  padding-right: 20px;
   overflow-x: auto;
   scrollbar-width: none;
 }
-.tiles::-webkit-scrollbar { display: none; }
-.tile {
-  flex: 0 0 92px;
-  height: 92px;
-  padding: 12px;
-  border-radius: 22px;
+.pills::-webkit-scrollbar, .chips::-webkit-scrollbar, .rail::-webkit-scrollbar { display: none; }
+.pills { position: relative; isolation: isolate; margin-top: 22px; }
+.pill {
+  position: relative;
+  flex: none;
+  height: 46px;
+  padding: 0 18px;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  text-align: left;
-  font-size: 13px;
-  font-weight: 600;
-  transition: background-color 0.3s ease, transform 0.18s var(--ease-out);
-}
-.tile .tile-count { font-size: 20px; font-weight: 700; color: var(--text-2); }
-.tile.is-active {
-  background: linear-gradient(180deg, var(--accent-a), var(--accent-b));
-  color: #15161A;
-  border: 1px solid var(--outline);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 10px 22px rgba(0, 0, 0, 0.3);
-}
-.tile.is-active .tile-count { color: #15161A; }
-
-.grid {
-  margin-top: 26px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-/* Карточка товара: фото в стеклянной рамке, сердечко в углу. */
-.card {
-  position: relative;
-  padding: 8px;
-  border-radius: 22px;
-  animation: rise 0.55s var(--ease-soft) both;
-  animation-delay: var(--d, 0ms);
-}
-.card-link {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+  align-items: center;
+  gap: 8px;
   border: 0;
-  border-radius: 22px;
-  padding: 0;
   background: transparent;
-}
-.photo {
-  position: relative;
-  aspect-ratio: 1 / 1;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid var(--outline);
-  background: #3A3D45;
-}
-.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.card-body { padding: 10px 4px 4px; }
-.card-title {
-  min-height: 36px;
+  color: var(--text);
   font-size: 14px;
   font-weight: 600;
-  line-height: 1.3;
+  transition: color 0.3s, transform 0.2s var(--ease-out);
 }
-.card-meta { margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.price { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.chip {
-  font-size: 12px;
-  color: var(--text-2);
-  padding: 4px 9px;
+.pill::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 999px; background: var(--surface); }
+.pill:active { transform: scale(0.95); }
+.pill-count { font-size: 11px; font-weight: 700; opacity: 0.5; }
+.pill.is-active { color: var(--on-ink); }
+.glider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 46px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--ink);
+  pointer-events: none;
 }
-.card.is-sold .price { color: var(--text-2); }
+.glider.is-ready { transition: transform 0.55s var(--spring), width 0.55s var(--spring); }
+
+.search {
+  margin-top: 14px;
+  height: 50px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-2);
+  transition: box-shadow 0.25s, background-color 0.25s;
+}
+.search:focus-within { box-shadow: 0 0 0 2px var(--ink); color: var(--text); }
+.search svg { flex: none; width: 18px; height: 18px; }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 16px; color: var(--text); }
+.search input::placeholder { color: var(--text-2); }
+
+.chips { margin-top: 12px; }
+.chips:empty { display: none; }
+.chip {
+  flex: none;
+  height: 36px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.25s, color 0.25s, transform 0.25s var(--spring);
+}
+.chip:active { transform: scale(0.92); }
+.chip.is-active { background: var(--ink); color: var(--on-ink); }
+
+/* ---------- Разделы ---------- */
+
+.sec-head { margin: 28px 0 12px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.sec-head h2 { display: flex; align-items: baseline; gap: 8px; font-family: var(--display); font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.sec-head .count { font-family: -apple-system, system-ui, sans-serif; font-size: 13px; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.sec-head p { margin-top: 4px; font-size: 12px; color: var(--text-2); }
+.sort {
+  flex: none;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform 0.2s var(--ease-out);
+}
+.sort:active { transform: scale(0.94); }
+
+#feed, #grid-sec { scroll-margin-top: 16px; }
+.rail { padding-bottom: 4px; scroll-snap-type: x proximity; }
+.rail .card { flex: 0 0 152px; scroll-snap-align: start; }
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.grid-empty { grid-column: 1 / -1; padding: 28px 0; text-align: center; font-size: 14px; color: var(--text-2); }
+
+/* ---------- Карточка в списке ---------- */
+
+.card {
+  position: relative;
+  padding: 6px 6px 12px;
+  border-radius: 24px;
+  background: var(--surface);
+  transition: transform 0.25s var(--ease-out);
+}
+.card:active { transform: scale(0.97); }
+.card-link { position: absolute; inset: 0; z-index: 1; padding: 0; border: 0; border-radius: 24px; background: transparent; }
+.photo { position: relative; aspect-ratio: 3 / 4; border-radius: 18px; overflow: hidden; background: var(--surface-2); }
+/* Пока фото грузится, серый фон переливается. */
+.photo:not(.is-ready)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.35) 50%, transparent 80%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+:root[data-theme="dark"] .photo:not(.is-ready)::after { background-image: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.07) 50%, transparent 80%); }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -100% 0; } }
+.photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.08);
+  filter: blur(10px);
+  transition: opacity 0.5s ease, transform 0.9s var(--ease-soft), filter 0.6s ease;
+}
+.photo img.is-ready { opacity: 1; transform: none; filter: none; }
+.card.is-sold .photo img.is-ready { filter: grayscale(1); opacity: 0.55; }
+.size-badge {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 2;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 9px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--chip-glass);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
 .sold-tag {
   position: absolute;
-  left: 10px;
-  bottom: 10px;
+  left: 8px;
+  bottom: 8px;
   z-index: 2;
-  padding: 6px 10px;
+  padding: 6px 11px;
   border-radius: 999px;
-  background: rgba(47, 49, 55, 0.85);
-  border: 1px solid var(--outline);
-  font-size: 12px;
-  font-weight: 600;
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: 11px;
+  font-weight: 700;
 }
+.card-body { padding: 11px 8px 0; }
+.card-title {
+  min-height: 34px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.price { margin-top: 8px; font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.card.is-sold .price { color: var(--text-2); }
 
-/* Сердечко: круг 30 px в углу фото. Нажатие — короткое плавное увеличение. */
+/* Сердечко: нажатие даёт короткое «пружинистое» увеличение и расходящееся кольцо. */
 .heart {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 8px;
+  right: 8px;
   z-index: 2;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   padding: 0;
+  border: 0;
   border-radius: 50%;
-  border: 1px solid var(--outline);
-  background: rgba(47, 49, 55, 0.6);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  display: grid;
+  place-items: center;
+  background: var(--chip-glass);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   color: var(--text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.3s ease, transform 0.18s var(--ease-out);
+  transition: background-color 0.3s, color 0.3s;
 }
-.heart svg { width: 15px; height: 15px; }
+.heart svg { width: 16px; height: 16px; transition: transform 0.4s var(--spring); }
+.heart.is-on { background: var(--ink); color: var(--on-ink); }
 .heart.is-on svg { fill: currentColor; }
-.heart.is-pulse { animation: pulse 0.28s var(--ease-out); }
-
-.empty {
-  margin-top: 28px;
-  padding: 28px 24px;
-  border-radius: 28px;
-  text-align: center;
+.heart.is-pulse svg { animation: pop 0.5s var(--spring); }
+.heart.is-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  animation: ring 0.6s var(--ease-out) forwards;
+  pointer-events: none;
 }
-.empty p { margin: 0; font-size: 16px; line-height: 1.5; }
+@keyframes pop { 0% { transform: scale(0.6); } 55% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@keyframes ring { from { opacity: 0.7; transform: scale(0.8); } to { opacity: 0; transform: scale(2); } }
+
+/* ---------- Избранное, пустое состояние ---------- */
+
+.head { padding-top: 12px; }
+.row-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.title { font-family: var(--display); font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
+.subtitle { margin-top: 6px; font-size: 14px; color: var(--text-2); }
+.count-pill { padding: 6px 12px; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.favorites-grid { margin-top: 22px; }
+
+.empty { margin-top: 28px; padding: 36px 24px; border-radius: 28px; background: var(--surface); text-align: center; }
+.empty p { font-size: 15px; line-height: 1.5; color: var(--text-2); }
 .empty .heart-ring {
+  position: relative;
   width: 96px;
   height: 96px;
-  margin: 0 auto 20px;
+  margin: 0 auto 22px;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
-  border: 1px solid var(--outline);
-  background: var(--glass-strong);
-  color: var(--text-2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: var(--surface-2);
 }
-
-.btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 52px;
-  border-radius: 18px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #15161A;
-  background: linear-gradient(180deg, var(--accent-a), var(--accent-b));
-  border: 1px solid var(--outline);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 10px 22px rgba(0, 0, 0, 0.3);
-  transition: transform 0.18s var(--ease-out);
-}
-.btn-ghost {
-  color: var(--text);
-  background: var(--glass);
-  border: 1px solid var(--glass-line);
-}
-
-/* Информация: логотип в круге, пункты, ссылки. */
-.shop-head { text-align: center; padding-top: 20px; }
-.shop-logo {
-  width: 132px;
-  height: 132px;
-  margin: 0 auto;
+.empty .heart-ring::before, .empty .heart-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid var(--outline);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px var(--outline), 0 18px 36px rgba(0, 0, 0, 0.32);
+  border: 1.5px solid var(--ink);
+  opacity: 0;
+  animation: ring-out 2.6s var(--ease-out) infinite;
 }
-.shop-name { margin: 16px 0 0; font-size: 22px; font-weight: 700; }
-.shop-hours { margin: 4px 0 0; font-size: 14px; color: var(--text-2); }
-.section-title { margin: 26px 0 12px; font-size: 18px; font-weight: 700; }
-.why {
-  padding: 16px 18px;
-  border-radius: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  animation: rise 0.55s var(--ease-soft) both;
-  animation-delay: 100ms;
+.empty .heart-ring::after { animation-delay: 1.3s; }
+.empty .heart-ring svg { width: 36px; height: 36px; animation: beat 2.6s ease-in-out infinite; }
+@keyframes ring-out { from { opacity: 0.5; transform: scale(0.9); } to { opacity: 0; transform: scale(1.7); } }
+@keyframes beat { 0%, 100% { transform: scale(1); } 12% { transform: scale(1.14); } 24% { transform: scale(1); } 36% { transform: scale(1.1); } 48% { transform: scale(1); } }
+.empty .btn { margin-top: 26px; width: 100%; }
+
+/* ---------- Инфо ---------- */
+
+.shop { position: relative; padding-top: 6px; text-align: center; }
+.shop .theme-btn { position: absolute; top: 0; right: 0; }
+.shop-ava { position: relative; width: 112px; height: 112px; margin: 10px auto 0; }
+.shop-ava img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+/* Вращающееся кольцо вокруг аватара. */
+.shop-ava::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--ink), transparent 40%, var(--ink) 55%, transparent 90%, var(--ink));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+  animation: spin 7s linear infinite;
 }
-.why-item { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; line-height: 1.4; }
-.why-item .ico { flex: 0 0 18px; width: 18px; height: 21px; display: flex; align-items: center; justify-content: center; }
-.why-item .ico svg { width: 18px; height: 18px; display: block; overflow: visible; }
-.list {
-  margin-top: 16px;
-  border-radius: 22px;
-  overflow: hidden;
-  animation: rise 0.55s var(--ease-soft) both;
-  animation-delay: 160ms;
-}
+.shop-name { margin-top: 20px; font-family: var(--display); font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+.shop-sub { margin-top: 6px; font-size: 14px; color: var(--text-2); }
+.shop .btn { margin-top: 18px; width: 100%; }
+
+.stats4 { margin-top: 22px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.stat { padding: 14px 16px; border-radius: 22px; background: var(--surface); }
+.stat small { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); }
+.stat b { display: block; margin-top: 8px; font-family: var(--display); font-size: 20px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+
+.why { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.why-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px 12px 12px; border-radius: 22px; background: var(--surface); font-size: 14px; font-weight: 600; line-height: 1.35; }
+.why-item .ico { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 14px; background: var(--surface-2); }
+.why-item .ico svg { width: 20px; height: 20px; }
 .list-row {
+  margin-top: 8px;
+  padding: 16px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px;
+  border-radius: 22px;
+  background: var(--surface);
+  transition: transform 0.2s var(--ease-out);
 }
-.list-row + .list-row { border-top: 1px solid rgba(255, 255, 255, 0.08); }
-.list-row .sub { font-size: 13px; color: var(--text-2); margin-top: 3px; }
-.list-row .chev { flex: 0 0 18px; width: 18px; height: 18px; }
+.list-row:active { transform: scale(0.98); }
+.list-row b { display: block; font-size: 15px; font-weight: 700; }
+.list-row span { display: block; margin-top: 3px; font-size: 13px; color: var(--text-2); }
+.list-row svg { flex: none; width: 18px; height: 18px; color: var(--text-2); }
+.section-title { margin: 28px 0 0; font-family: var(--display); font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
 
-/* Карточка товара: лист поверх приложения. */
+/* Иконки «Почему мы?»: лёгкое движение. */
+.ico-star svg { animation: breathe 2.8s ease-in-out infinite; }
+.ico-bolt svg { animation: flicker 2.4s ease-in-out infinite; }
+.ico-chat .dot { animation: bounce 1.2s ease-in-out infinite; }
+.ico-chat .dot.d2 { animation-delay: 0.15s; }
+.ico-chat .dot.d3 { animation-delay: 0.3s; }
+.ico-refresh svg { animation: spin 3.4s linear infinite; }
+@keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.14) rotate(8deg); } }
+@keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-2.5px); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Нижнее меню ---------- */
+
+.tabbar {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: min(480px, 100%);
+  padding: 8px 12px calc(8px + var(--safe-bottom));
+  display: flex;
+  background: var(--bg-glass);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border-top: 1px solid var(--line);
+}
+/* Подложка под значком выбранной вкладки скользит с лёгким «пружинным» перелётом. */
+.tab-glider {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  width: calc((100% - 24px) / 3);
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  transform: translateX(calc((var(--i) - 1) * 100%));
+  transition: transform 0.55s var(--spring);
+  pointer-events: none;
+}
+.tab-glider::before { content: ""; width: 64px; height: 32px; border-radius: 16px; background: var(--surface-2); }
+.tab {
+  position: relative;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-2);
+  transition: color 0.3s;
+}
+.tab-ico { height: 32px; display: grid; place-items: center; transition: transform 0.3s var(--spring); }
+.tab:active .tab-ico { transform: scale(0.82); }
+.tab-label { font-size: 11px; font-weight: 600; }
+.tab[aria-current="page"] { color: var(--text); }
+.tab[aria-current="page"] .tab-label { font-weight: 800; }
+.tab[aria-current="page"] .tab-ico svg { animation: tab-pop 0.5s var(--spring); }
+@keyframes tab-pop { 0% { transform: scale(0.7); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+
+/* ---------- Карточка товара ---------- */
+
 .sheet {
   position: fixed;
   inset: 0;
   z-index: 20;
   background: var(--bg);
   overflow-y: auto;
+  border-radius: 30px 30px 0 0;
   transform: translateY(100%);
-  transition: transform 0.34s var(--ease-soft);
+  transition: transform 0.5s var(--ease-soft), border-radius 0.5s var(--ease-soft);
   -webkit-overflow-scrolling: touch;
 }
 /* Без transform у открытой карточки нижняя панель и кнопка «назад» закреплены к экрану, а не к карточке: при прокрутке не уезжают. */
-.sheet.is-open { transform: none; }
-.sheet.is-closing { transform: translateY(100%); transition-duration: 0.26s; transition-timing-function: var(--ease-out); }
+.sheet.is-open { transform: none; border-radius: 0; }
+.sheet.is-closing { transform: translateY(100%); border-radius: 30px 30px 0 0; transition-duration: 0.3s; transition-timing-function: var(--ease-out); }
 .sheet[hidden] { display: none; }
-.sheet-body {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: calc(72px + env(safe-area-inset-top, 0px)) 20px calc(120px + env(safe-area-inset-bottom, 0px));
-}
+.sheet-body { max-width: 480px; margin: 0 auto; padding-bottom: calc(120px + var(--safe-bottom)); }
 .back {
   position: fixed;
-  top: calc(20px + env(safe-area-inset-top, 0px));
+  top: calc(14px + var(--safe-top));
   left: max(16px, calc(50% - 224px));
   z-index: 21;
   width: 44px;
   height: 44px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
+  background: var(--chip-glass);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   color: var(--text);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s var(--ease-out);
 }
+.back:active { transform: scale(0.9); }
 .back svg { width: 20px; height: 20px; }
-.p-title { margin: 0; font-size: 24px; font-weight: 700; line-height: 1.2; letter-spacing: -0.3px; }
-.p-sub { margin: 6px 0 0; font-size: 14px; color: var(--text-2); }
-.cells { margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.cell {
-  height: 60px;
-  padding: 10px 12px;
-  border-radius: 18px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-.cell span:first-child { font-size: 11px; color: var(--text-2); }
-.cell span:last-child { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-.gallery {
-  position: relative;
-  margin-top: 14px;
-  aspect-ratio: 1 / 1;
-  border-radius: 26px;
-  overflow: hidden;
-  border: 1px solid var(--outline);
-  background: #3A3D45;
-}
-.gallery-track {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-}
+.p-gallery { position: relative; aspect-ratio: 3 / 4; max-height: 66vh; width: 100%; overflow: hidden; border-radius: 0 0 30px 30px; background: var(--surface-2); }
+.gallery-track { position: absolute; inset: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .gallery-track::-webkit-scrollbar { display: none; }
-.gallery-track img {
-  flex: 0 0 100%;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  scroll-snap-align: center;
-  cursor: zoom-in;
-}
-.dots {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 14px;
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  pointer-events: none;
-}
-.dot { width: 6px; height: 6px; border-radius: 999px; background: rgba(238, 240, 243, 0.35); transition: width 0.25s var(--ease-out), background-color 0.25s ease; }
-.dot.is-active { width: 18px; background: var(--text); }
+.gallery-track img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: center; cursor: zoom-in; }
+.dots { position: absolute; left: 0; right: 0; bottom: 20px; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
+.dot { width: 6px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.5); transition: width 0.35s var(--spring), background-color 0.25s; }
+.dot.is-active { width: 20px; background: #fff; }
 
-.desc { margin-top: 14px; padding: 14px 18px; border-radius: 22px; }
-.desc h2 { margin: 0; font-size: 12px; font-weight: 600; color: var(--text-2); }
-.desc p { margin: 6px 0 0; font-size: 15px; line-height: 1.5; }
+.p-info { padding: 22px 20px 0; }
+.p-title { font-family: var(--display); font-size: 21px; font-weight: 800; line-height: 1.2; letter-spacing: -0.03em; }
+.p-sub { margin-top: 8px; font-size: 14px; color: var(--text-2); }
+.p-sub:empty { display: none; }
+.stats { margin-top: 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cell { padding: 12px 10px; border-radius: 18px; background: var(--surface); text-align: center; }
+.cell small { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-2); }
+.cell b { display: block; margin-top: 7px; font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.desc { margin-top: 10px; padding: 16px 18px; border-radius: 22px; background: var(--surface); }
+.desc h2 { font-size: 10px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-2); }
+.desc p { margin-top: 8px; font-size: 15px; line-height: 1.55; white-space: pre-line; }
+
 .buybar {
   position: fixed;
   left: 50%;
-  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(10px + var(--safe-bottom));
   width: min(448px, calc(100% - 32px));
   transform: translateX(-50%);
   z-index: 22;
-  height: 68px;
-  padding: 4px 6px 4px 3px;
+  padding: 8px;
   display: flex;
   gap: 8px;
   align-items: center;
-  border-radius: 26px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 55%, rgba(255, 255, 255, 0.05) 100%);
-  -webkit-backdrop-filter: blur(12px) saturate(170%);
-  backdrop-filter: blur(12px) saturate(170%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.3), inset 0 0 18px rgba(255, 255, 255, 0.05), 0 0 0 1px var(--outline), 0 18px 36px -12px rgba(0, 0, 0, 0.5);
+  border-radius: 999px;
+  background: var(--bg-glass);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow);
+  animation: bar-in 0.7s 0.15s var(--spring) backwards;
 }
-.buybar .heart { position: static; flex: 0 0 40px; width: 40px; height: 40px; }
-.buybar .btn { flex: 1; height: 56px; }
-/* «Забронировать» — 75% нижней панели без сердечка, «Замеры» — 25%. */
+@keyframes bar-in { from { opacity: 0; transform: translate(-50%, 140%); } }
+.buybar .heart { position: relative; inset: auto; flex: 0 0 52px; width: 52px; height: 52px; background: var(--surface-2); }
+.buybar .heart svg { width: 20px; height: 20px; }
+.buybar .heart.is-on { background: var(--ink); }
+.buybar .btn { flex: 1; height: 52px; }
+/* «Забронировать» — 75% панели без сердечка, «Замеры» — 25%. */
 .buybar .buy-main { flex: 3; min-width: 0; }
-.buybar .buy-measure { flex: 1; min-width: 0; font-size: 14px; }
+.buybar .buy-measure { flex: 1; min-width: 0; padding: 0 8px; font-size: 14px; }
 
-.zoom {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(20, 21, 25, 0.92);
-  cursor: zoom-out;
-}
+.zoom { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(8, 8, 9, 0.94); cursor: zoom-out; animation: fade-in 0.25s ease; }
 .zoom[hidden] { display: none; }
 .zoom img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 16px; touch-action: pinch-zoom; }
+@keyframes fade-in { from { opacity: 0; } }
 
-/* Нижнее меню: почти прозрачное стекло, по контуру медленно движется блик. */
-.tabbar {
-  position: fixed;
-  left: 50%;
-  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-  transform: translateX(-50%);
-  z-index: 10;
-  width: min(448px, calc(100% - 32px));
-  height: 68px;
-  padding: 6px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 55%, rgba(255, 255, 255, 0.05) 100%);
-  -webkit-backdrop-filter: blur(12px) saturate(170%);
-  backdrop-filter: blur(12px) saturate(170%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.3), inset 0 0 18px rgba(255, 255, 255, 0.05), 0 0 0 1px var(--outline), 0 18px 36px -12px rgba(0, 0, 0, 0.5);
-}
+/* ---------- Загрузка ---------- */
 
-/* Контур: тонкая светлая кромка, по которой медленно перетекает блик (9 секунд на круг). */
-.yo-rim::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1.2px;
-  background: conic-gradient(
-    from var(--yo-angle),
-    rgba(255, 255, 255, 0.16) 0deg,
-    rgba(255, 255, 255, 0.10) 70deg,
-    rgba(255, 255, 255, 0.62) 110deg,
-    rgba(196, 206, 222, 0.5) 135deg,
-    rgba(255, 255, 255, 0.10) 175deg,
-    rgba(255, 255, 255, 0.16) 240deg,
-    rgba(255, 255, 255, 0.10) 310deg,
-    rgba(255, 255, 255, 0.16) 360deg
-  );
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  animation: rim-spin 9s linear infinite;
-}
-
-/* Линза: стеклянный пузырь, который скользит к выбранной вкладке. */
-.lens {
-  position: absolute;
-  top: 5px;
-  left: 6px;
-  width: calc((100% - 12px - 12px) / 3);
-  height: 56px;
-  border-radius: 999px;
-  z-index: 0;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.10) 38%, rgba(255, 255, 255, 0.04) 62%, rgba(255, 255, 255, 0.22) 100%);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.7), inset 0 -2px 8px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 10px 22px -6px rgba(0, 0, 0, 0.5);
-  -webkit-backdrop-filter: blur(3px) brightness(1.18) saturate(150%);
-  backdrop-filter: blur(3px) brightness(1.18) saturate(150%);
-  transform: translateX(calc((var(--i) - 1) * (100% + 6px)));
-  transition: transform 0.46s var(--ease-out);
-}
-.tab {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  height: 56px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-2);
-  font-size: 11px;
-  font-weight: 600;
-  transition: color 0.3s ease;
-}
-.tab[aria-current="page"] { color: var(--text); font-weight: 700; }
-
-/* Иконки «Почему мы?»: медленное покачивание, блик, мигание и вращение. */
-.ico-star svg { animation: pulse-soft 2.8s ease-in-out infinite; }
-.ico-star .sweep { animation: sweep 2.8s ease-in-out infinite; }
-.ico-bolt svg { animation: breathe 2.4s ease-in-out infinite; }
-.ico-chat .dot { animation: bounce 1.2s ease-in-out infinite; }
-.ico-chat .dot.d2 { animation-delay: 0.15s; }
-.ico-chat .dot.d3 { animation-delay: 0.3s; }
-.ico-refresh .spin { transform-box: fill-box; transform-origin: center; animation: spin 3s linear infinite; }
-
-@keyframes rise {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes pulse {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.12); }
-  100% { transform: scale(1); }
-}
-@keyframes pulse-soft {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
-}
-@keyframes breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
-}
-@keyframes sweep {
-  0% { transform: translateX(0) skewX(-18deg); }
-  60%, 100% { transform: translateX(44px) skewX(-18deg); }
-}
-@keyframes bounce {
-  0%, 60%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-2px); }
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes rim-spin {
-  to { --yo-angle: 360deg; }
-}
-@keyframes shimmer {
-  0% { background-position: -200px 0; }
-  100% { background-position: 200px 0; }
-}
-
-.skeleton {
-  border-radius: 22px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.05) 100%);
-  background-size: 400px 100%;
-  animation: shimmer 1.6s linear infinite;
-  aspect-ratio: 1 / 1.25;
-}
+.skeleton-grid { margin-top: 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.skeleton { border-radius: 24px; aspect-ratio: 3 / 4.6; background: linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%); background-size: 300% 100%; animation: skeleton 1.5s linear infinite; }
+.skeleton-grid .skeleton:nth-child(2) { animation-delay: 0.15s; }
+.skeleton-grid .skeleton:nth-child(3) { animation-delay: 0.3s; }
+.skeleton-grid .skeleton:nth-child(4) { animation-delay: 0.45s; }
+@keyframes skeleton { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.retry { margin-top: 16px; width: 100%; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;
     transition-duration: 0.01ms !important;
   }
-  .yo-rim::before { animation: none !important; }
+  .reveal { opacity: 1; }
   .sheet { transition: none; }
-}
-
-/* Стартовая заставка: логотип проявляется из размытия, по нему проходит блик, затем заставка уходит. */
-.intro {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 22px;
-  background: var(--bg);
-  transition: opacity 0.5s var(--ease-out), filter 0.5s var(--ease-out);
-}
-.intro.is-done { opacity: 0; filter: blur(10px); pointer-events: none; }
-.intro-core {
-  position: relative;
-  width: 156px;
-  height: 156px;
-  border-radius: 50%;
-  animation: intro-in 1.1s var(--ease-soft) both;
-}
-.intro-logo {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  box-shadow: 0 0 0 1px var(--outline), inset 0 0 0 2px rgba(255, 255, 255, 0.16), 0 24px 60px rgba(0, 0, 0, 0.45);
-}
-.intro-core::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.5) 50%, transparent 65%);
-  background-size: 260% 100%;
-  mix-blend-mode: overlay;
-  animation: intro-shine 1.5s 0.7s var(--ease-out) both;
-}
-.intro-ring {
-  position: absolute;
-  inset: -14px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 28px rgba(255, 255, 255, 0.08);
-  animation: intro-ring 1.6s var(--ease-soft) both, intro-pulse 2.6s 1.6s ease-in-out infinite;
-}
-.intro-title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--text-2);
-  animation: intro-title 1s 0.6s var(--ease-out) both;
-}
-@keyframes intro-in {
-  from { opacity: 0; transform: scale(0.72) rotate(-10deg); filter: blur(16px); }
-  60% { opacity: 1; filter: blur(0); }
-  to { opacity: 1; transform: none; filter: none; }
-}
-@keyframes intro-ring {
-  from { opacity: 0; transform: scale(0.5); }
-  to { opacity: 1; transform: scale(1); }
-}
-@keyframes intro-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.06); opacity: 0.6; }
-}
-@keyframes intro-shine {
-  from { background-position: 130% 0; }
-  to { background-position: -30% 0; }
-}
-@keyframes intro-title {
-  from { opacity: 0; letter-spacing: 0.9em; transform: translateY(8px); }
-  to { opacity: 1; letter-spacing: 0.42em; transform: none; }
 }

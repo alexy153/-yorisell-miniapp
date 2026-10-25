@@ -25,6 +25,7 @@ const TYPES = {
   ".jpg": "image/jpeg",
   ".png": "image/png",
   ".svg": "image/svg+xml",
+  ".webp": "image/webp",
   ".ico": "image/x-icon",
   ".json": "application/json",
 };

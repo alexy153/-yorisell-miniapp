@@ -205,11 +205,13 @@ function gridHtml(animate) {
 }
 
 // Без подписей поверх фото: если картинки нет, остаётся ровный серый фон плитки.
+// В карточке берётся маленькая версия (540 px), выбор между версиями делает браузер по плотности экрана.
 // Первые карточки грузятся сразу и с высоким приоритетом, остальные — по мере прокрутки.
-function photoHtml(url, priority = false) {
-  if (!url) return "";
+function photoHtml(cover, priority = false) {
+  if (!cover) return "";
   const loading = priority ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"';
-  return `<img src="${esc(url)}" alt="" decoding="async" ${loading} data-fallback>`;
+  const srcset = `${esc(cover.small)} 540w, ${esc(cover.large)} 1000w`;
+  return `<img src="${esc(cover.small)}" srcset="${srcset}" sizes="(max-width: 480px) 45vw, 200px" alt="" decoding="async" ${loading} data-fallback>`;
 }
 
 function cardHtml(item, index, animate) {
@@ -219,7 +221,7 @@ function cardHtml(item, index, animate) {
     <article class="card glass${item.sold ? " is-sold" : ""}" style="${delay}">
       <button class="card-link" type="button" data-open="${item.id}" aria-label="${esc(item.title)}, ${rub(item.priceRub)}"></button>
       <div class="photo">
-        ${photoHtml(item.coverUrl, index < 4)}
+        ${photoHtml(item.cover, index < 4)}
         <button class="heart${on ? " is-on" : ""}" type="button" data-fav="${item.id}" aria-pressed="${on}" aria-label="В избранное">${ICON.heart}</button>
         ${item.sold ? '<span class="sold-tag">Нет в наличии</span>' : ""}
       </div>
@@ -293,12 +295,12 @@ function infoHtml() {
 
 function productHtml(item) {
   const on = state.favorites.includes(item.id);
-  const gallery = item.photos.length
+  const gallery = item.gallery.length
     ? `<div class="gallery">
          <div class="gallery-track" id="gallery">
-           ${item.photos.map((url, i) => `<img src="${esc(url)}" alt="${esc(item.title)}, фото ${i + 1}" data-zoom="${esc(url)}" data-fallback decoding="async" loading="${i === 0 ? "eager" : "lazy"}">`).join("")}
+           ${item.gallery.map((pair, i) => `<img src="${esc(pair.large)}" srcset="${esc(pair.small)} 540w, ${esc(pair.large)} 1000w" sizes="(max-width: 480px) 100vw, 480px" alt="${esc(item.title)}, фото ${i + 1}" data-zoom="${esc(pair.large)}" data-fallback decoding="async" loading="${i === 0 ? "eager" : "lazy"}">`).join("")}
          </div>
-         <div class="dots" id="dots">${item.photos.map((_, i) => `<span class="dot${i === 0 ? " is-active" : ""}"></span>`).join("")}</div>
+         <div class="dots" id="dots">${item.gallery.map((_, i) => `<span class="dot${i === 0 ? " is-active" : ""}"></span>`).join("")}</div>
        </div>`
     : `<div class="gallery"></div>`;
 

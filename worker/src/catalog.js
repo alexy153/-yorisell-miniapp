@@ -2,6 +2,7 @@
 // Проданные в каталоге не показываются, а в избранном остаются с пометкой «Нет в наличии».
 import { all, first } from "./db.js";
 import { buildBookingUrl, buildMeasureUrl } from "./booking.js";
+import { mediaPair } from "./media.js";
 
 export const CATEGORY_ORDER = ["Худи", "Свитеры", "Футболки", "Обувь", "Другое"];
 
@@ -11,7 +12,13 @@ const CARD_SQL = `
          COALESCE(
            (SELECT p.id FROM photos p WHERE p.item_id = i.id AND p.id = i.cover_photo_id),
            (SELECT p.id FROM photos p WHERE p.item_id = i.id ORDER BY p.position LIMIT 1)
-         ) AS cover_id
+         ) AS cover_id,
+         COALESCE(
+           (SELECT p.position FROM photos p WHERE p.item_id = i.id AND p.id = i.cover_photo_id),
+           (SELECT MIN(p.position) FROM photos p WHERE p.item_id = i.id),
+           0
+         ) AS cover_index,
+         (SELECT COUNT(*) FROM photos p WHERE p.item_id = i.id) AS photo_count
   FROM items i`;
 
 // Ручная пометка владельца важнее пометки SOLD из канала.
@@ -28,6 +35,7 @@ function toCard(row) {
     size: row.size,
     fit: row.fit,
     coverUrl: row.cover_id ? `/img/${row.cover_id}` : null,
+    cover: row.photo_count > 0 ? mediaPair(row.id, row.cover_index) : null,
     sold: isSold(row),
   };
 }
@@ -61,7 +69,7 @@ export async function getItemDetail(db, id) {
   const item = await first(db, "SELECT * FROM items WHERE id = ? AND visible = 1", [id]);
   if (!item) return null;
 
-  const photos = await all(db, "SELECT id FROM photos WHERE item_id = ? ORDER BY position", [id]);
+  const photos = await all(db, "SELECT id, position FROM photos WHERE item_id = ? ORDER BY position", [id]);
   const soldInChannel = Boolean(await first(db, "SELECT 1 AS found FROM sold_marks WHERE item_id = ?", [id]));
   const sold = item.sold_manual === null ? soldInChannel : item.sold_manual === 1;
   const cover = photos.find((photo) => photo.id === item.cover_photo_id) ?? photos[0];
@@ -84,5 +92,7 @@ export async function getItemDetail(db, id) {
     sold,
     coverUrl: cover ? `/img/${cover.id}` : null,
     photos: photos.map((photo) => `/img/${photo.id}`),
+    cover: cover ? mediaPair(item.id, cover.position) : null,
+    gallery: photos.map((photo) => mediaPair(item.id, photo.position)),
   };
 }

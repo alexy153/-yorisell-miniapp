@@ -123,7 +123,7 @@ function itemCard(item, index, last) {
   const status = [item.size ?? "—", rub(item.priceRub), item.soldEffective ? "Продано" : "В наличии", ...notes];
   const cover = item.coverPhotoId ?? item.photoIds[0];
   const image = cover
-    ? `<img class="item-cover" src="/img/${cover}" alt="" loading="lazy">`
+    ? `<img class="item-cover" src="${mediaSrc(item, cover)}" alt="" loading="lazy">`
     : `<div class="item-cover" aria-hidden="true"></div>`;
   return `
     <li class="item glass">
@@ -223,15 +223,21 @@ function openSheet(item) {
   sheet.hidden = false;
 }
 
+// Маленькая версия фото по его месту в альбоме товара (тот же порядок, что в витрине).
+function mediaSrc(item, photoId) {
+  const index = Math.max(0, item.photoIds.indexOf(photoId));
+  return item.media[index]?.small ?? "";
+}
+
 function coverButton(photoId, item) {
   if (photoId === null) {
     const first = item.photoIds[0];
-    const picture = first ? `<img src="/img/${first}" alt="">` : "";
+    const picture = first ? `<img src="${mediaSrc(item, first)}" alt="">` : "";
     return `<button type="button" data-action="cover" data-value="auto" aria-label="Первое фото"
               aria-pressed="${state.draft.coverPhotoId === null}">${picture}<span class="auto-label">Первое фото</span></button>`;
   }
   return `<button type="button" data-action="cover" data-value="${photoId}" aria-label="Фото"
-            aria-pressed="${state.draft.coverPhotoId === photoId}"><img src="/img/${photoId}" alt=""></button>`;
+            aria-pressed="${state.draft.coverPhotoId === photoId}"><img src="${mediaSrc(item, photoId)}" alt=""></button>`;
 }
 
 function closeSheet() {

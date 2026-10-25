@@ -39,6 +39,7 @@ test("каталог: карточка содержит фото, цену, ра
   assert.equal(card.size, "L");
   assert.equal(card.fit, "M, L");
   assert.match(card.coverUrl, /^\/img\/\d+$/);
+  assert.equal(card.cover.small, "/media/170/0-s.webp");
 });
 
 test("скрытый владельцем товар исчезает из каталога и из карточки", async () => {
@@ -87,6 +88,9 @@ test("карточка товара: описание, фото, ссылка н
   assert.ok(decodeURIComponent(item.bookingUrl).includes("https://t.me/Yorisell/170"));
   assert.ok(item.measureUrl.startsWith("https://t.me/Alexy153?text="));
   assert.ok(decodeURIComponent(item.measureUrl).includes("Привет,нужны замеры https://t.me/Yorisell/170"));
+  assert.equal(item.gallery.length, 5);
+  assert.equal(item.gallery[0].large, "/media/170/0-l.webp");
+  assert.equal(item.cover.small, "/media/170/0-s.webp");
 });
 
 test("карточка проданного товара помечена sold: true", async () => {

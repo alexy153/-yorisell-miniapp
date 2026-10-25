@@ -3,6 +3,7 @@ import { all, first, run } from "./db.js";
 import { CATEGORY_ORDER } from "./catalog.js";
 import { refreshItem, syncChannel, lastSync, DEFAULT_BUDGET } from "./sync.js";
 import { fetchText as defaultFetchText } from "./fetchers.js";
+import { mediaPair } from "./media.js";
 
 // Поля, которые владелец правит вручную: синхронизация их потом не перезаписывает.
 const MANUAL = new Set(["title", "description", "category"]);
@@ -41,6 +42,7 @@ export async function listAdminItems(db) {
     sortOrder: row.sort_order,
     coverPhotoId: row.cover_photo_id,
     photoIds: photoIds.get(row.id) ?? [],
+    media: (photoIds.get(row.id) ?? []).map((_, index) => mediaPair(row.id, index)),
     photoCount: row.photo_count,
     cachedCount: row.cached_count,
     manualFields: JSON.parse(row.manual_fields),

@@ -9,6 +9,12 @@
   },
   "scripts": {
     "test": "node --no-warnings --test \"tests/*.test.js\"",
-    "dev": "node --no-warnings scripts/dev-server.js"
+    "dev": "node --no-warnings scripts/dev-server.js",
+    "media": "node --no-warnings scripts/build-media.mjs",
+    "media:fixtures": "node --no-warnings scripts/build-media.mjs --fixtures"
+  },
+  "devDependencies": {
+    "sharp": "0.35.5",
+    "wrangler": "4.152.0"
   }
 }

@@ -16,6 +16,8 @@ const WEB = join(ROOT, "web");
 const FIXTURES = join(ROOT, "tests", "fixtures");
 const DATA = join(ROOT, "data");
 const PORT = Number(process.env.PORT) || 8787;
+// По умолчанию сервер виден только этому компьютеру; HOST=0.0.0.0 открывает его телефону в той же сети Wi-Fi.
+const HOST = process.env.HOST ?? "127.0.0.1";
 const LIVE = process.env.LIVE === "1";
 
 const TYPES = {
@@ -129,6 +131,6 @@ const server = createServer(async (req, res) => {
 });
 
 await seedCatalog();
-server.listen(PORT, "127.0.0.1", () => {
+server.listen(PORT, HOST, () => {
   console.log(`Yorisell: http://localhost:${PORT}  (остановить: Ctrl+C)`);
 });

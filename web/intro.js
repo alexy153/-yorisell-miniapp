@@ -3,27 +3,30 @@
 // тонкие трещины, по которым слово видно как мозаику, а не как сплошную надпись. Потом оно снова разлетается.
 // Форма осколков — ячейки Вороного, нарезанные прямо по буквам, поэтому в собранном виде они стыкуются точно.
 // Положение каждого осколка — функция от времени, поэтому любой кадр можно получить напрямую (адрес с ?introT=1.4).
-// Телефон вибрирует в такт: удары на разлёте, нарастающая дробь при сборке, сильный удар, когда слово сложилось,
-// пульс перед финалом и затухающая россыпь после финального разлёта.
+// Телефон вибрирует волной: ровные удары, сила плавно растёт от самой слабой до самой сильной (в момент, когда слово
+// сложилось) и так же плавно спадает до самой слабой к концу заставки.
 
 const T_EXPAND = 0.5; // осколки разлетаются кольцом
 const T_BURST = 2.75; // слово разлетается, под ним проявляется приложение
-const T_END = 3.4;
+export const T_END = 3.4;
 const WORD = "Yori";
 const SHARD = 8.6; // средний размер осколка у слова шириной WORD_REF, px
 const CRACK = 1.3; // ширина трещины между осколками у слова шириной WORD_REF, px
 const WORD_REF = 335;
 const GHOSTS = 1.9; // летающих осколков-«декораций» на каждый настоящий осколок слова
 
-// Вибрация: [секунда заставки, сила]. Сила — стили Telegram: soft < light < medium < rigid < heavy.
-const BEATS = [
-  [0, "heavy"], [0.16, "medium"], [0.34, "light"], // осколки разлетаются и замедляются
-  [0.64, "soft"], [0.88, "soft"], [1.06, "light"], [1.22, "light"], [1.36, "light"], // сборка: частота растёт
-  [1.48, "medium"], [1.58, "medium"], [1.67, "medium"], [1.75, "rigid"], [1.82, "rigid"],
-  [1.9, "heavy"], // слово сложилось
-  [2.3, "soft"], [2.55, "soft"], // слово держится, по нему пробегает блик
-  [T_BURST, "heavy"], [T_BURST + 0.13, "medium"], [T_BURST + 0.27, "light"], [T_BURST + 0.43, "soft"], [T_BURST + 0.59, "soft"], // затухание
-];
+// Вибрация: [секунда заставки, сила]. Сила — стили Telegram от слабого к сильному. Удары идут ровно, каждые 0,1 с;
+// сила растёт по прямой от soft (0 с) до heavy (PULSE_PEAK — слово сложилось) и по прямой спадает до soft (PULSE_LAST).
+const LEVELS = ["soft", "light", "medium", "rigid", "heavy"];
+const PULSE_STEP = 0.1;
+const PULSE_PEAK = 1.85;
+const PULSE_LAST = 3.3;
+export const BEATS = [];
+for (let k = 0; k * PULSE_STEP <= PULSE_LAST + 1e-9; k++) {
+  const t = Math.round(k * PULSE_STEP * 1000) / 1000;
+  const x = t <= PULSE_PEAK ? t / PULSE_PEAK : (PULSE_LAST - t) / (PULSE_LAST - PULSE_PEAK);
+  BEATS.push([t, LEVELS[Math.round(x * (LEVELS.length - 1))]]);
+}
 
 function mulberry32(seed) {
   let a = seed;
@@ -709,11 +712,11 @@ export async function playIntro({ onReveal = () => {}, onPulse = () => {} } = {}
     const tick = (now) => {
       if (start === null) start = now;
       const t = (now - start) / 1000;
-      // Удары вибрации привязаны к времени заставки; если кадр запоздал (вкладка была скрыта) или заставку пропустили, старые удары не повторяем.
-      while (beat < BEATS.length && BEATS[beat][0] <= t) {
-        if (t - BEATS[beat][0] < 0.18) onPulse(BEATS[beat][1]);
-        beat++;
-      }
+      // Удары вибрации привязаны к времени заставки. Если кадр запоздал и «созрело» сразу несколько ударов (или заставку
+      // пропустили нажатием), выдаём только последний из них, и только если он свежий: очереди из ударов не будет.
+      let due = -1;
+      while (beat < BEATS.length && BEATS[beat][0] <= t) due = beat++;
+      if (due >= 0 && t - BEATS[due][0] < 0.3) onPulse(BEATS[due][1]);
       if (t >= T_BURST && !revealed) {
         revealed = true;
         root.classList.add("is-revealing");

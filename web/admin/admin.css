@@ -257,6 +257,13 @@
 }
 .sheet-wrap[hidden] { display: none; }
 .sheet {
+  /* Имя .sheet занято и в base.css (там это лист карточки товара: position: fixed и сдвиг вниз на всю высоту).
+     Для окна правки эти свойства сбрасываем, иначе оно уезжает за нижний край экрана и кнопки в нём не нажать. */
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  transform: none;
+  transition: none;
   width: 100%;
   max-width: 560px;
   max-height: 92vh;

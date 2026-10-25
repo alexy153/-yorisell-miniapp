@@ -1,5 +1,7 @@
 // Админ-панель: товары и статистика. Все данные приходят с сервера, и каждый запрос подписан Telegram.
 // Браузеру не доверяем: сервер сам проверяет подпись токеном бота и сравнивает ID с владельцем.
+import { installTapFeedback } from "../haptics.js";
+
 const tg = window.Telegram?.WebApp;
 const initData = tg?.initData ?? "";
 
@@ -419,6 +421,12 @@ sheet.addEventListener("submit", (event) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !sheet.hidden) closeSheet();
+});
+
+// Каждая кнопка в админке даёт отклик; переключатель «показывать в каталоге», сохранение и обновление — плотнее остальных.
+installTapFeedback({
+  style: (control) => (control.matches('[role="switch"], [type="submit"], [data-action="sync"], [data-action="refresh"]') ? "medium" : "light"),
+  find: (target) => (target === sheet ? target : null), // нажатие мимо окна закрывает его
 });
 
 async function start() {

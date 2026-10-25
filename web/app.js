@@ -2,6 +2,7 @@
 // Данные берём с сервера (/api). Избранное — в облачном хранилище Telegram, в браузере — в памяти браузера.
 
 import { playIntro } from "./intro.js";
+import { haptic, installTapFeedback } from "./haptics.js";
 
 const tg = window.Telegram?.WebApp;
 // Telegram-скрипт загружается и в обычном браузере, поэтому проверяем, что приложение открыто внутри Telegram.
@@ -117,23 +118,6 @@ function setupTelegram() {
   }
 }
 
-// Вибрация: на выбор, нажатие кнопки, «лайк», заставка. В Telegram — его отклик (kind: select, soft, light, medium, rigid, heavy).
-// В обычном браузере — вибрация Android, она разрешена только после первого касания страницы; на iPhone вне Telegram её нет.
-const VIBRATE_MS = { select: 14, soft: 14, light: 18, medium: 26, rigid: 32, heavy: 45 };
-
-function haptic(kind) {
-  try {
-    if (inTelegram) {
-      if (kind === "select") tg.HapticFeedback?.selectionChanged();
-      else tg.HapticFeedback?.impactOccurred(kind);
-    } else if (navigator.userActivation?.hasBeenActive) {
-      navigator.vibrate?.(VIBRATE_MS[kind] ?? 12);
-    }
-  } catch {
-    /* вибрации в этой версии нет */
-  }
-}
-
 const currentTheme = () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light");
 
 function paintTheme(theme) {
@@ -158,7 +142,6 @@ function toggleTheme(button) {
   } catch {
     /* без памяти браузера тема просто не запомнится */
   }
-  haptic("light");
   if (!document.startViewTransition || REDUCED) return paintTheme(next);
   const rect = button.getBoundingClientRect();
   const x = rect.left + rect.width / 2;
@@ -280,7 +263,6 @@ async function switchTab(tab) {
   const direction = Math.sign(TABS.indexOf(tab) - TABS.indexOf(state.tab));
   state.tab = tab;
   setTabbar(tab);
-  haptic("medium");
   await swapView(() => renderTab(tab), direction);
 }
 
@@ -575,7 +557,6 @@ async function openItem(id) {
   const body = $("#sheet-body");
   body.innerHTML = `<div class="skeleton-grid" style="grid-template-columns:1fr"><div class="skeleton" style="aspect-ratio:3/4"></div></div>`;
   showSheet();
-  haptic("medium");
   track("open", id);
   const back = `<button class="back" type="button" data-close aria-label="Назад">${ICON.back}</button>`;
   try {
@@ -598,7 +579,10 @@ function showSheet() {
   sheet.classList.remove("is-closing");
   requestAnimationFrame(() => requestAnimationFrame(() => sheet.classList.add("is-open")));
   if (inTelegram && tg.BackButton) {
-    backHandler = () => hideSheet();
+    backHandler = () => {
+      haptic("light");
+      hideSheet();
+    };
     tg.BackButton.onClick(backHandler);
     tg.BackButton.show();
   }
@@ -639,7 +623,6 @@ async function toggleFavorite(id) {
   state.favorites = on ? [...state.favorites, id] : state.favorites.filter((x) => x !== id);
   saveFavorites(state.favorites);
   track(on ? "favorite" : "unfavorite", id);
-  haptic(on ? "medium" : "light");
 
   for (const button of document.querySelectorAll(`[data-fav="${id}"]`)) {
     button.classList.toggle("is-on", on);
@@ -661,7 +644,6 @@ async function toggleFavorite(id) {
 function openLink(link, event) {
   const href = link.getAttribute("href");
   if (link.dataset.book) track("book", Number(link.dataset.book));
-  haptic("medium");
   if (inTelegram && tg.openTelegramLink && href?.startsWith("https://t.me/")) {
     event.preventDefault();
     tg.openTelegramLink(href);
@@ -694,6 +676,21 @@ function selectSize(size) {
   renderFeed(true);
 }
 
+// Нажатие на любую кнопку, ссылку или переключатель даёт отклик; новые кнопки получают его сами. Сила — по роли элемента.
+function tapStyle(control) {
+  // Повторное нажатие на текущую вкладку — лёгкий отклик, переключение — плотнее.
+  if (control.matches(".tab")) return control.dataset.tab === state.tab ? "soft" : "medium";
+  // «Лайк» плотнее, чем снятие отметки (состояние ещё не изменилось: правило срабатывает раньше обработчика).
+  if (control.matches("[data-fav]")) return state.favorites.includes(Number(control.dataset.fav)) ? "light" : "medium";
+  // Переходы и действия: товар, каталог, бронь, замеры, чат с продавцом.
+  if (control.matches("[data-open], [data-goto], [data-tg-link]")) return "medium";
+  // Остальное: категории, размеры, сортировка, тема, «назад», фото, «повторить», отзывы.
+  return "light";
+}
+
+// Фото в галерее и тёмная подложка просмотра — кликабельны, хотя это не кнопки.
+installTapFeedback({ style: tapStyle, find: (target) => target.closest("[data-zoom], #zoom") });
+
 document.addEventListener("click", (event) => {
   const target = event.target;
   const hit = (selector) => target.closest(selector);
@@ -712,26 +709,18 @@ document.addEventListener("click", (event) => {
   if (theme) return toggleTheme(theme);
 
   const cat = hit("[data-cat]");
-  if (cat) {
-    haptic("select");
-    return selectCategory(cat.dataset.cat);
-  }
+  if (cat) return selectCategory(cat.dataset.cat);
 
   const size = hit("[data-size]");
-  if (size) {
-    haptic("select");
-    return selectSize(size.dataset.size);
-  }
+  if (size) return selectSize(size.dataset.size);
 
   if (hit("[data-sort]")) {
-    haptic("select");
     state.sort = SORT_ORDER[(SORT_ORDER.indexOf(state.sort) + 1) % SORT_ORDER.length];
     return renderFeed(true);
   }
 
   const scroll = hit("[data-scroll]");
   if (scroll) {
-    haptic("light");
     document.getElementById(scroll.dataset.scroll)?.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" });
     return;
   }

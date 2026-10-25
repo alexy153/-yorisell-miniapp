@@ -119,7 +119,7 @@ function setupTelegram() {
 
 // Вибрация: на выбор, нажатие кнопки, «лайк», заставка. В Telegram — его отклик (kind: select, soft, light, medium, rigid, heavy).
 // В обычном браузере — вибрация Android, она разрешена только после первого касания страницы; на iPhone вне Telegram её нет.
-const VIBRATE_MS = { select: 6, soft: 8, light: 12, medium: 18, rigid: 24, heavy: 34 };
+const VIBRATE_MS = { select: 14, soft: 14, light: 18, medium: 26, rigid: 32, heavy: 45 };
 
 function haptic(kind) {
   try {
@@ -280,7 +280,7 @@ async function switchTab(tab) {
   const direction = Math.sign(TABS.indexOf(tab) - TABS.indexOf(state.tab));
   state.tab = tab;
   setTabbar(tab);
-  haptic("select");
+  haptic("medium");
   await swapView(() => renderTab(tab), direction);
 }
 
@@ -575,7 +575,7 @@ async function openItem(id) {
   const body = $("#sheet-body");
   body.innerHTML = `<div class="skeleton-grid" style="grid-template-columns:1fr"><div class="skeleton" style="aspect-ratio:3/4"></div></div>`;
   showSheet();
-  haptic("light");
+  haptic("medium");
   track("open", id);
   const back = `<button class="back" type="button" data-close aria-label="Назад">${ICON.back}</button>`;
   try {

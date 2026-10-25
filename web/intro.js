@@ -10,8 +10,9 @@ const T_EXPAND = 0.5; // осколки разлетаются кольцом
 const T_BURST = 2.75; // слово разлетается, под ним проявляется приложение
 const T_END = 3.4;
 const WORD = "Yori";
-const SHARD = 8.6; // средний размер осколка, px
-const CRACK = 1.3; // ширина трещины между осколками, px
+const SHARD = 8.6; // средний размер осколка у слова шириной WORD_REF, px
+const CRACK = 1.3; // ширина трещины между осколками у слова шириной WORD_REF, px
+const WORD_REF = 335;
 const GHOSTS = 1.9; // летающих осколков-«декораций» на каждый настоящий осколок слова
 
 // Вибрация: [секунда заставки, сила]. Сила — стили Telegram: soft < light < medium < rigid < heavy.
@@ -52,7 +53,7 @@ function rectCanvas(w, h) {
 
 // Зёрна осколков: случайные точки внутри букв не ближе друг к другу, чем нужно. У каждого зерна свой радиус,
 // поэтому осколки получаются разного размера; потом добавляются зёрна в уголки, куда случайные не попали.
-function scatterSeeds(inside, W, H, S, rand) {
+function scatterSeeds(inside, W, H, S, rand, shard) {
   const seeds = [];
   const wCss = W / S;
   const hCss = H / S;
@@ -65,7 +66,7 @@ function scatterSeeds(inside, W, H, S, rand) {
     const x = rand() * wCss;
     const y = rand() * hCss;
     if (!isInside(x, y)) continue;
-    const r = SHARD * (0.72 + 0.62 * rand());
+    const r = shard * (0.72 + 0.62 * rand());
     let free = true;
     for (const s of seeds) {
       const m = (s[2] + r) * 0.5;
@@ -81,7 +82,7 @@ function scatterSeeds(inside, W, H, S, rand) {
       if (!isInside(x, y)) continue;
       let near = Infinity;
       for (const s of seeds) near = Math.min(near, Math.hypot(s[0] - x, s[1] - y));
-      if (near > SHARD * 0.95) seeds.push([x, y, SHARD * 0.8]);
+      if (near > shard * 0.95) seeds.push([x, y, shard * 0.8]);
     }
   }
   return seeds;
@@ -95,6 +96,10 @@ async function buildWord(targetW, S, rand) {
   } catch {
     // шрифт не успел: возьмём системный жирный
   }
+  // Осколки и трещины меняются вместе со словом, чтобы мозаика выглядела одинаково при любом размере.
+  const unit = targetW / WORD_REF;
+  const shard = Math.max(6.5, SHARD * unit);
+  const crack = Math.max(1.1, CRACK * unit);
   const family = `"Unbounded", "Arial Black", "Helvetica Neue", Arial, sans-serif`;
   const meter = rectCanvas(1, 1).getContext("2d");
   meter.font = `900 100px ${family}`;
@@ -134,8 +139,8 @@ async function buildWord(targetW, S, rand) {
     for (let x = 0; x < W; x++) inside[y * W + x] = pixels[((y + top) * cw + x + left) * 4 + 3] > 127 ? 1 : 0;
   }
 
-  const seeds = scatterSeeds(inside, W, H, S, rand);
-  const cell = SHARD * 1.6;
+  const seeds = scatterSeeds(inside, W, H, S, rand, shard);
+  const cell = shard * 1.6;
   const gw = Math.ceil(W / S / cell) + 1;
   const gh = Math.ceil(H / S / cell) + 1;
   const buckets = Array.from({ length: gw * gh }, () => []);
@@ -177,7 +182,7 @@ async function buildWord(targetW, S, rand) {
         const lo = Math.min(i1, i2);
         const hi = Math.max(i1, i2);
         const noise = Math.abs(Math.sin(lo * 12.9898 + hi * 78.233) * 43758.5453) % 1;
-        if (d2 - d1 < CRACK * (0.7 + 0.8 * noise) * between) continue;
+        if (d2 - d1 < crack * (0.7 + 0.8 * noise) * between) continue;
       }
       const k = (y * W + x) * 4;
       map[k] = i1 & 255;
@@ -227,7 +232,7 @@ async function buildWord(targetW, S, rand) {
 
 // Полёт каждого осколка: свой угол, дальность, время, вращение и кувырок. Осколки-«декорации» (ghost) копируют
 // форму настоящих, но в слово не входят: долетают и гаснут.
-function buildInstances(shards, textW, reachMax, rand) {
+function buildInstances(shards, textW, ringW, reachMax, rand) {
   const real = shards.length;
   const total = real + Math.round(real * GHOSTS);
   const list = [];
@@ -247,8 +252,8 @@ function buildInstances(shards, textW, reachMax, rand) {
       tier: ghost ? (rand() < 0.34 ? 0 : rand() < 0.55 ? 1 : 2) : 0,
       ca: Math.cos(angle),
       sa: Math.sin(angle),
-      r0: textW * (0.08 + 0.2 * rand()),
-      reach: rand() < 0.12 ? textW * 0.9 + rand() * reachMax : textW * (0.55 + 0.95 * rand() ** 1.3),
+      r0: ringW * (0.08 + 0.2 * rand()),
+      reach: rand() < 0.12 ? ringW * 0.9 + rand() * reachMax : ringW * (0.55 + 0.95 * rand() ** 1.3),
       te,
       tg: te + 0.85 + 0.5 * rand(),
       bd: rand() * 0.22 + (len / textW) * 0.3,
@@ -645,7 +650,8 @@ export async function playIntro({ onReveal = () => {}, onPulse = () => {} } = {}
   colors.gain = colors.ink[0] > 0.5 ? 0.3 : 0.6;
   const width = window.innerWidth;
   const height = window.innerHeight;
-  const textW = Math.round(Math.min(width * 0.86, 440));
+  const ringW = Math.round(Math.min(width * 0.86, 440)); // от него считается размах разлёта осколков
+  const textW = Math.round(Math.min(width * 0.72, 370)); // само слово чуть меньше прежнего
   const reachMax = Math.hypot(width, height) * 0.62;
   const view = { width, height, dpr: Math.min(window.devicePixelRatio || 1, 3), cx: width / 2, cy: height / 2 - height * 0.03, spread: reachMax * 0.9 };
   const fit = () => {
@@ -659,7 +665,7 @@ export async function playIntro({ onReveal = () => {}, onPulse = () => {} } = {}
   let list;
   try {
     word = await buildWord(textW, Math.max(2, Math.round(view.dpr)), rand);
-    list = buildInstances(word.shards, textW, reachMax, rand);
+    list = buildInstances(word.shards, textW, ringW, reachMax, rand);
   } catch {
     return finish();
   }

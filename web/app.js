@@ -117,12 +117,18 @@ function setupTelegram() {
   }
 }
 
-// Лёгкая вибрация в Telegram: на выбор, нажатие кнопки, «лайк».
+// Вибрация: на выбор, нажатие кнопки, «лайк», заставка. В Telegram — его отклик (kind: select, soft, light, medium, rigid, heavy).
+// В обычном браузере — вибрация Android, она разрешена только после первого касания страницы; на iPhone вне Telegram её нет.
+const VIBRATE_MS = { select: 6, soft: 8, light: 12, medium: 18, rigid: 24, heavy: 34 };
+
 function haptic(kind) {
-  if (!inTelegram) return;
   try {
-    if (kind === "select") tg.HapticFeedback?.selectionChanged();
-    else tg.HapticFeedback?.impactOccurred(kind);
+    if (inTelegram) {
+      if (kind === "select") tg.HapticFeedback?.selectionChanged();
+      else tg.HapticFeedback?.impactOccurred(kind);
+    } else if (navigator.userActivation?.hasBeenActive) {
+      navigator.vibrate?.(VIBRATE_MS[kind] ?? 12);
+    }
   } catch {
     /* вибрации в этой версии нет */
   }
@@ -810,7 +816,7 @@ function introGate() {
       document.getElementById("intro")?.remove();
       return resolve();
     }
-    playIntro({ onReveal: resolve }).catch(() => {
+    playIntro({ onReveal: resolve, onPulse: haptic }).catch(() => {
       document.getElementById("intro")?.remove();
       resolve();
     });

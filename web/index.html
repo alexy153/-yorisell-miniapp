@@ -21,6 +21,7 @@
     })();
   </script>
   <link rel="preload" href="assets/logo-s.webp" as="image" type="image/webp">
+  <link rel="preload" href="fonts/unbounded-lat.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/unbounded-cyr.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/oswald-cyr.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
@@ -38,15 +39,15 @@
     <nav class="tabbar" aria-label="Разделы" style="--i: 2">
       <span class="tab-glider" aria-hidden="true"></span>
       <button class="tab" type="button" data-tab="favorites">
-        <span class="tab-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
+        <span class="tab-ico"><svg class="ic ic-heart" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
         <span class="tab-label">Избранное</span>
       </button>
       <button class="tab" type="button" data-tab="catalog" aria-current="page">
-        <span class="tab-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></span>
+        <span class="tab-ico"><svg class="ic ic-grid" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><g class="grid-turn"><rect class="sq s1" x="3" y="3" width="7" height="7" rx="2"/><rect class="sq s2" x="14" y="3" width="7" height="7" rx="2"/><rect class="sq s3" x="14" y="14" width="7" height="7" rx="2"/><rect class="sq s4" x="3" y="14" width="7" height="7" rx="2"/></g></svg></span>
         <span class="tab-label">Все товары</span>
       </button>
       <button class="tab" type="button" data-tab="info">
-        <span class="tab-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></span>
+        <span class="tab-ico"><svg class="ic ic-info" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle class="info-ring" cx="12" cy="12" r="9" stroke-dasharray="3.6 3.47"/><path class="info-stem" d="M12 11v5"/><path class="info-dot" d="M12 7.5h.01"/></svg></span>
         <span class="tab-label">Инфо</span>
       </button>
     </nav>

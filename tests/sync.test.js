@@ -179,4 +179,7 @@ test("категория по названию и размеру", () => {
   assert.equal(categoryFor({ title: "Футболка Alexander McQueen SS19" }), "Футболки");
   assert.equal(categoryFor({ title: "Bottega Veneta vintage 2014", sizeNote: "27,2-27,5" }), "Обувь");
   assert.equal(categoryFor({ title: "Что-то другое" }), "Другое");
+  assert.equal(categoryFor({ title: "Джинсы Levi's 501" }), "Джинсы");
+  assert.equal(categoryFor({ title: "Jeans Diesel Larkee" }), "Джинсы");
+  assert.equal(categoryFor({ title: "Джинсы-карго Carhartt" }), "Джинсы");
 });

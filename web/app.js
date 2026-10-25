@@ -500,7 +500,32 @@ document.addEventListener(
 
 // ---------- Старт ----------
 
+// Стартовая заставка с логотипом: показывается один раз за сессию, нажатие по ней её пропускает.
+function playIntro() {
+  const intro = document.getElementById("intro");
+  if (!intro) return;
+  let seen = false;
+  try {
+    seen = sessionStorage.getItem("introSeen") === "1";
+    sessionStorage.setItem("introSeen", "1");
+  } catch {
+    // в приватном окне хранилища может не быть: заставка просто покажется
+  }
+  if (seen) {
+    intro.remove();
+    return;
+  }
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const finish = () => {
+    intro.classList.add("is-done");
+    setTimeout(() => intro.remove(), 600);
+  };
+  intro.addEventListener("click", finish, { once: true });
+  setTimeout(finish, reduce ? 400 : 2100);
+}
+
 async function start() {
+  playIntro();
   setupTelegram();
   track("visit");
   state.favorites = await loadFavorites();

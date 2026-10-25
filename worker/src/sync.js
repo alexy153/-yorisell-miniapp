@@ -44,6 +44,7 @@ export class BudgetExhausted extends Error {
 // Категория по названию и размеру: в постах категории нет, поэтому определяем сами.
 export function categoryFor({ title, sizeNote }) {
   const name = (title ?? "").toLowerCase();
+  if (/джинс|jeans|denim/.test(name)) return "Джинсы";
   if (/худи|hoodie/.test(name)) return "Худи";
   if (/свит|sweat/.test(name)) return "Свитеры";
   if (/футболк|тишк|t-shirt/.test(name)) return "Футболки";

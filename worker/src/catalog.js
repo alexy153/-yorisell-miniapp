@@ -4,7 +4,7 @@ import { all, first } from "./db.js";
 import { buildBookingUrl, buildMeasureUrl } from "./booking.js";
 import { mediaPair } from "./media.js";
 
-export const CATEGORY_ORDER = ["Худи", "Свитеры", "Футболки", "Обувь", "Другое"];
+export const CATEGORY_ORDER = ["Джинсы", "Худи", "Свитеры", "Футболки", "Обувь", "Другое"];
 
 const CARD_SQL = `
   SELECT i.id, i.title, i.category, i.price_rub, i.size, i.fit, i.sold_manual,

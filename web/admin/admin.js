@@ -3,7 +3,7 @@
 const tg = window.Telegram?.WebApp;
 const initData = tg?.initData ?? "";
 
-const CATEGORIES = ["Худи", "Свитеры", "Футболки", "Обувь", "Другое"];
+const CATEGORIES = ["Джинсы", "Худи", "Свитеры", "Футболки", "Обувь", "Другое"];
 const PERIODS = [
   { days: 1, label: "Сегодня" },
   { days: 7, label: "7 дней" },

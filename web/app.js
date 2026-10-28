@@ -138,7 +138,7 @@ function paintTheme(theme) {
 function toggleTheme(button) {
   const next = currentTheme() === "dark" ? "light" : "dark";
   try {
-    localStorage.setItem(THEME_KEY, next);
+    sessionStorage.setItem(THEME_KEY, next);
   } catch {
     /* без памяти браузера тема просто не запомнится */
   }
@@ -558,7 +558,8 @@ async function openItem(id) {
   body.innerHTML = `<div class="skeleton-grid" style="grid-template-columns:1fr"><div class="skeleton" style="aspect-ratio:3/4"></div></div>`;
   showSheet();
   track("open", id);
-  const back = `<button class="back" type="button" data-close aria-label="Назад">${ICON.back}</button>`;
+  // В Telegram назад ведёт его собственная кнопка «Назад», своего круга в углу нет; в обычном браузере её нет, поэтому там круг остаётся.
+  const back = inTelegram ? "" : `<button class="back" type="button" data-close aria-label="Назад">${ICON.back}</button>`;
   try {
     const item = state.details.get(id) ?? (await api(`/api/items/${id}`));
     state.details.set(id, item);

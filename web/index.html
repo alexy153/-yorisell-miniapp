@@ -3,14 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="color-scheme" content="light dark">
+  <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#FAFAFA">
   <title>Yorisell</title>
   <script>
-    // Тема выбирается до первой отрисовки, чтобы не было вспышки: по умолчанию светлая, выбор покупателя запоминается.
+    // Тема выбирается до первой отрисовки, чтобы не было вспышки. Каждое открытие приложения начинается со светлой; переключение
+      // на тёмную помнится только до закрытия приложения.
     (function () {
       var theme = "light";
-      try { if (localStorage.getItem("theme") === "dark") theme = "dark"; } catch (e) {}
+      try { if (sessionStorage.getItem("theme") === "dark") theme = "dark"; localStorage.removeItem("theme"); } catch (e) {}
       document.documentElement.dataset.theme = theme;
       // Страховка: если скрипт приложения не запустился, заставка и скрытое меню не должны остаться навсегда.
       setTimeout(function () {
@@ -26,6 +27,14 @@
   <link rel="preload" href="fonts/oswald-cyr.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    // Шапка и фон Telegram сразу белые, не дожидаясь загрузки приложения.
+    (function () {
+      var tg = window.Telegram && window.Telegram.WebApp;
+      if (!tg || document.documentElement.dataset.theme === "dark") return;
+      try { tg.setHeaderColor("#FAFAFA"); tg.setBackgroundColor("#FAFAFA"); tg.setBottomBarColor && tg.setBottomBarColor("#FAFAFA"); } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <div id="intro" class="intro" aria-hidden="true">

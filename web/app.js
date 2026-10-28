@@ -10,7 +10,8 @@ const inTelegram = Boolean(tg && tg.platform && tg.platform !== "unknown");
 const REDUCED = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 const TABS = ["favorites", "catalog", "info"];
 const FAV_KEY = "favorites";
-const THEME_KEY = "theme";
+// Новое имя ключа: ранее сохранённый при проверках тёмный режим сбрасывается, и первый запуск у всех белый.
+const THEME_KEY = "yorisell-theme";
 const SELLER = "https://t.me/Alexy153";
 const REVIEWS = "https://www.avito.ru/brands/f9610b6b4e6fd344c27c2197bf03b0be?src=sharing";
 const THEME_BG = { light: "#FAFAFA", dark: "#0A0A0B" };
@@ -138,7 +139,7 @@ function paintTheme(theme) {
 function toggleTheme(button) {
   const next = currentTheme() === "dark" ? "light" : "dark";
   try {
-    sessionStorage.setItem(THEME_KEY, next);
+    localStorage.setItem(THEME_KEY, next);
   } catch {
     /* без памяти браузера тема просто не запомнится */
   }

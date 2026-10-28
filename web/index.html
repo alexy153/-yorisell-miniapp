@@ -7,11 +7,11 @@
   <meta name="theme-color" content="#FAFAFA">
   <title>Yorisell</title>
   <script>
-    // Тема выбирается до первой отрисовки, чтобы не было вспышки. Каждое открытие приложения начинается со светлой; переключение
-      // на тёмную помнится только до закрытия приложения.
+    // Тема выбирается до первой отрисовки, чтобы не было вспышки. Первый запуск всегда светлый; если покупатель выбрал тёмную,
+      // она остаётся при каждом следующем открытии, пока он сам не переключит обратно.
     (function () {
       var theme = "light";
-      try { if (sessionStorage.getItem("theme") === "dark") theme = "dark"; localStorage.removeItem("theme"); } catch (e) {}
+      try { if (localStorage.getItem("yorisell-theme") === "dark") theme = "dark"; localStorage.removeItem("theme"); } catch (e) {}
       document.documentElement.dataset.theme = theme;
       // Страховка: если скрипт приложения не запустился, заставка и скрытое меню не должны остаться навсегда.
       setTimeout(function () {

@@ -10,7 +10,7 @@ const inTelegram = Boolean(tg && tg.platform && tg.platform !== "unknown");
 const REDUCED = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 const TABS = ["favorites", "catalog", "info"];
 const FAV_KEY = "favorites";
-// Новое имя ключа: ранее сохранённый при проверках тёмный режим сбрасывается, и первый запуск у всех белый.
+// Выбор темы кнопкой хранится под этим ключом; пока его нет, действует тема системы.
 const THEME_KEY = "yorisell-theme";
 const SELLER = "https://t.me/Alexy153";
 const REVIEWS = "https://www.avito.ru/brands/f9610b6b4e6fd344c27c2197bf03b0be?src=sharing";
@@ -158,6 +158,17 @@ function toggleTheme(button) {
     )
     .catch(() => {});
 }
+
+// Пока покупатель сам не выбирал тему, приложение следует за темой системы, в том числе если её сменили при открытом приложении.
+window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change", (event) => {
+  let saved = null;
+  try {
+    saved = localStorage.getItem(THEME_KEY);
+  } catch {
+    /* без памяти браузера выбор не запоминался */
+  }
+  if (saved !== "dark" && saved !== "light") paintTheme(event.matches ? "dark" : "light");
+});
 
 const themeButtonHtml = () => `<button class="theme-btn" type="button" data-theme-toggle aria-label="Сменить тему">${ICON.moon}${ICON.sun}</button>`;
 

@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#FAFAFA">
   <title>Yorisell</title>
   <script>
-    // Тема выбирается до первой отрисовки, чтобы не было вспышки. Первый запуск всегда светлый; если покупатель выбрал тёмную,
-      // она остаётся при каждом следующем открытии, пока он сам не переключит обратно.
+    // Тема выбирается до первой отрисовки, чтобы не было вспышки. Пока покупатель сам ничего не выбирал, берётся тема системы
+      // телефона; выбранная кнопкой тема (светлая или тёмная) запоминается и остаётся, пока он не переключит обратно.
     (function () {
-      var theme = "light";
-      try { if (localStorage.getItem("yorisell-theme") === "dark") theme = "dark"; localStorage.removeItem("theme"); } catch (e) {}
+      var theme = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      try { var saved = localStorage.getItem("yorisell-theme"); if (saved === "dark" || saved === "light") theme = saved; localStorage.removeItem("theme"); } catch (e) {}
       document.documentElement.dataset.theme = theme;
       // Страховка: если скрипт приложения не запустился, заставка и скрытое меню не должны остаться навсегда.
       setTimeout(function () {
@@ -28,11 +28,12 @@
   <link rel="stylesheet" href="styles.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    // Шапка и фон Telegram сразу белые, не дожидаясь загрузки приложения.
+    // Шапка и фон Telegram сразу под тему приложения, не дожидаясь его загрузки.
     (function () {
       var tg = window.Telegram && window.Telegram.WebApp;
-      if (!tg || document.documentElement.dataset.theme === "dark") return;
-      try { tg.setHeaderColor("#FAFAFA"); tg.setBackgroundColor("#FAFAFA"); tg.setBottomBarColor && tg.setBottomBarColor("#FAFAFA"); } catch (e) {}
+      if (!tg) return;
+      var bg = document.documentElement.dataset.theme === "dark" ? "#0A0A0B" : "#FAFAFA";
+      try { tg.setHeaderColor(bg); tg.setBackgroundColor(bg); tg.setBottomBarColor && tg.setBottomBarColor(bg); } catch (e) {}
     })();
   </script>
 </head>
